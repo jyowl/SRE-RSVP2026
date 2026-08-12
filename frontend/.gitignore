@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.env
+.env.example
+Brief SRE RSVP Web.pdf
+dbscheme.txt
