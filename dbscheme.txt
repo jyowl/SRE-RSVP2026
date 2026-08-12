@@ -1,0 +1,92 @@
+-- ============================================
+-- MIGRATION: Schema RSVP App (updated)
+-- ============================================
+
+create extension if not exists "pgcrypto";
+
+-- 1. Tabel admin
+create table admins (
+  id uuid primary key references auth.users(id) on delete cascade,
+  nama text,
+  created_at timestamptz default now()
+);
+
+-- 2. Tabel event
+-- catering_options: array JSON berisi {id, name, image_url}
+-- image_url di sini menunjuk ke file di bucket "catering-images"
+create table events (
+  id uuid primary key default gen_random_uuid(),
+  nama_acara text not null,
+  kode_unik text not null unique,
+  tanggal_acara date,
+  catering_options jsonb not null default '[]'::jsonb,
+  created_by uuid references admins(id),
+  created_at timestamptz default now()
+);
+
+-- 3. Tabel registrasi
+-- catering_choice: menyimpan "id" dari salah satu opsi di catering_options (bukan gambar)
+-- bukti_url: URL screenshot yang di-upload ke bucket "bukti-sg-invitation"
+create table registrations (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references events(id) on delete cascade,
+  jenis text not null check (jenis in ('member', 'pengurus', 'izin')),
+  nama text not null,
+  nim text not null,
+  jurusan text not null,
+  angkatan text,
+  jabatan text,
+  alasan_tidak_hadir text,
+  catering_choice text,   -- diisi id menu, contoh: 'nasi-goreng'
+  bukti_url text,         -- diisi URL screenshot, contoh: 'https://xxx.supabase.co/storage/v1/object/public/bukti-sg-invitation/xxx.jpg'
+  created_at timestamptz default now(),
+
+  -- Validasi tambahan: kalau bukan izin, wajib isi catering & bukti
+  constraint check_hadir_lengkap check (
+    jenis = 'izin' 
+    or (catering_choice is not null and bukti_url is not null)
+  ),
+  -- Validasi: kalau izin, wajib isi alasan
+  constraint check_izin_ada_alasan check (
+    jenis != 'izin' or alasan_tidak_hadir is not null
+  )
+);
+
+create index idx_events_kode on events(kode_unik);
+create index idx_registrations_event on registrations(event_id);
+
+-- ============================================
+-- ROW LEVEL SECURITY (sama seperti sebelumnya)
+-- ============================================
+
+alter table admins enable row level security;
+alter table events enable row level security;
+alter table registrations enable row level security;
+
+create policy "admin manage own profile" on admins
+  for all using (auth.uid() = id);
+
+create policy "admin manage own events" on events
+  for all using (auth.uid() = created_by);
+
+create policy "public insert registration" on registrations
+  for insert with check (true);
+
+create policy "admin read own registrations" on registrations
+  for select using (
+    exists (
+      select 1 from events
+      where events.id = registrations.event_id
+      and events.created_by = auth.uid()
+    )
+  );
+
+create or replace function validate_event_code(input_code text)
+returns table(event_id uuid, nama_acara text, catering_options jsonb)
+language sql
+security definer
+as $$
+  select id, nama_acara, catering_options
+  from events
+  where kode_unik = input_code;
+$$;

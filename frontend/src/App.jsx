@@ -1,122 +1,93 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Public Pages
+import LandingPage from './pages/LandingPage'
+import RegisterPage from './pages/RegisterPage'
+import SuccessPage from './pages/SuccessPage'
+import NotFoundPage from './pages/NotFoundPage'
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+// Admin Pages
+import LoginPage from './pages/admin/LoginPage'
+import DashboardPage from './pages/admin/DashboardPage'
+import NewEventPage from './pages/admin/NewEventPage'
+import EventDetailPage from './pages/admin/EventDetailPage'
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+// Protected Route
+function ProtectedRoute({ children, user }) {
+  if (user === undefined) {
+    // still loading auth state
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="spinner spinner-lg" />
+      </div>
+    )
+  }
+  if (!user) return <Navigate to="/admin/login" replace />
+  return children
 }
 
-export default App
+export default function App() {
+  const [user, setUser] = useState(undefined)
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  return (
+    <BrowserRouter>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: '#13281f',
+            color: '#fff',
+            border: '1px solid rgba(232,184,75,0.3)',
+            fontFamily: 'Inter, sans-serif',
+          },
+          success: {
+            iconTheme: { primary: '#e8b84b', secondary: '#13281f' },
+          },
+          error: {
+            iconTheme: { primary: '#ff6b6b', secondary: '#13281f' },
+          },
+        }}
+      />
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/register/:eventId" element={<RegisterPage />} />
+        <Route path="/success" element={<SuccessPage />} />
+
+        {/* Admin */}
+        <Route path="/admin/login" element={
+          user ? <Navigate to="/admin/dashboard" replace /> : <LoginPage />
+        } />
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute user={user}><DashboardPage /></ProtectedRoute>
+        } />
+        <Route path="/admin/events/new" element={
+          <ProtectedRoute user={user}><NewEventPage /></ProtectedRoute>
+        } />
+        <Route path="/admin/events/:id" element={
+          <ProtectedRoute user={user}><EventDetailPage /></ProtectedRoute>
+        } />
+
+        {/* 404 */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
