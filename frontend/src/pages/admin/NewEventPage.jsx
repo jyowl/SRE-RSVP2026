@@ -20,14 +20,16 @@ export default function NewEventPage() {
 
   const [form, setForm] = useState({
     nama_acara: '',
+    deskripsi: '',
     kode_unik: '',
     tanggal_acara: '',
+    jam_acara: '',
   })
   const [errors, setErrors] = useState({})
 
   // Catering menu items
-  const [menuItems, setMenuItems] = useState([]) // { id, name, imageFile, imagePreview, imageUrl }
-  const [newMenu, setNewMenu] = useState({ name: '', imageFile: null, imagePreview: null })
+  const [menuItems, setMenuItems] = useState([]) // { id, name, price, imageFile, imagePreview, imageUrl }
+  const [newMenu, setNewMenu] = useState({ name: '', price: '', imageFile: null, imagePreview: null })
 
   function setField(key, val) {
     setForm((p) => ({ ...p, [key]: val }))
@@ -54,15 +56,17 @@ export default function NewEventPage() {
       toast.error('Foto menu wajib diupload')
       return
     }
+    const priceNum = newMenu.price ? parseInt(newMenu.price.replace(/\D/g, ''), 10) : null
     const id = generateMenuId(newMenu.name) + '-' + Date.now()
     setMenuItems((p) => [...p, {
       id,
       name: newMenu.name.trim(),
+      price: priceNum,
       imageFile: newMenu.imageFile,
       imagePreview: newMenu.imagePreview,
       imageUrl: null,
     }])
-    setNewMenu({ name: '', imageFile: null, imagePreview: null })
+    setNewMenu({ name: '', price: '', imageFile: null, imagePreview: null })
   }
 
   function removeMenuItem(id) {
@@ -88,13 +92,21 @@ export default function NewEventPage() {
 
     setLoading(true)
     try {
+      // 0. Ambil user yang sedang login
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('Sesi login tidak ditemukan. Silakan login ulang.')
+        navigate('/admin/login')
+        return
+      }
+
       // 1. Upload semua foto catering
       const uploadedMenus = []
       for (const item of menuItems) {
         if (item.imageFile) {
           toast.loading(`Mengupload foto "${item.name}"...`, { id: 'upload-catering' })
           const url = await uploadCateringImage(item.imageFile, item.id)
-          uploadedMenus.push({ id: item.id, name: item.name, image_url: url })
+          uploadedMenus.push({ id: item.id, name: item.name, image_url: url, price: item.price ?? null })
         }
       }
       toast.dismiss('upload-catering')
@@ -102,9 +114,12 @@ export default function NewEventPage() {
       // 2. Insert event to DB
       const { error } = await supabase.from('events').insert({
         nama_acara: form.nama_acara.trim(),
+        deskripsi: form.deskripsi.trim() || null,
         kode_unik: form.kode_unik.trim().toUpperCase(),
         tanggal_acara: form.tanggal_acara || null,
+        jam_acara: form.jam_acara || null,
         catering_options: uploadedMenus,
+        created_by: user.id,   // ← wajib untuk RLS policy
       })
 
       if (error) throw error
@@ -188,6 +203,31 @@ export default function NewEventPage() {
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="ev-jam">Jam Acara</label>
+                <input
+                  id="ev-jam"
+                  className="form-input"
+                  type="time"
+                  value={form.jam_acara}
+                  onChange={(e) => setField('jam_acara', e.target.value)}
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="ev-deskripsi">Deskripsi Acara</label>
+                <textarea
+                  id="ev-deskripsi"
+                  className="form-input"
+                  value={form.deskripsi}
+                  onChange={(e) => setField('deskripsi', e.target.value)}
+                  placeholder="Deskripsikan acara ini (opsional)"
+                  rows={3}
+                  style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                />
+              </div>
             </div>
           </div>
 
@@ -210,6 +250,11 @@ export default function NewEventPage() {
                     )}
                     <div style={{ padding: '8px', background: 'var(--color-bg-card)', fontSize: '0.82rem', fontWeight: 600 }}>
                       {item.name}
+                      {item.price != null && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-gold)', fontWeight: 500, marginTop: '2px' }}>
+                          {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.price)}
+                        </div>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -239,6 +284,19 @@ export default function NewEventPage() {
                   onChange={(e) => setNewMenu((p) => ({ ...p, name: e.target.value }))}
                   placeholder="Nama menu, contoh: Nasi Goreng Spesial"
                   id="new-menu-name"
+                />
+                <input
+                  className="form-input"
+                  type="text"
+                  inputMode="numeric"
+                  value={newMenu.price}
+                  onChange={(e) => {
+                    // only allow digits
+                    const raw = e.target.value.replace(/\D/g, '')
+                    setNewMenu((p) => ({ ...p, price: raw }))
+                  }}
+                  placeholder="Harga (Rp) — kosongkan jika gratis"
+                  id="new-menu-price"
                 />
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

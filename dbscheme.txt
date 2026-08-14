@@ -1,54 +1,92 @@
 -- ============================================
--- MIGRATION: Schema RSVP App (updated)
+-- MIGRATION: Schema RSVP App (v2 — izin diperluas)
 -- ============================================
+
+drop table if exists registrations cascade;
+drop table if exists events cascade;
+drop table if exists admins cascade;
+drop function if exists validate_event_code;
 
 create extension if not exists "pgcrypto";
 
+-- ============================================
 -- 1. Tabel admin
+-- ============================================
 create table admins (
   id uuid primary key references auth.users(id) on delete cascade,
   nama text,
   created_at timestamptz default now()
 );
 
+-- ============================================
 -- 2. Tabel event
--- catering_options: array JSON berisi {id, name, image_url}
--- image_url di sini menunjuk ke file di bucket "catering-images"
+-- Tambahan: jam_acara dan deskripsi
+-- ============================================
 create table events (
   id uuid primary key default gen_random_uuid(),
   nama_acara text not null,
+  deskripsi text,
   kode_unik text not null unique,
   tanggal_acara date,
+  jam_acara time,
   catering_options jsonb not null default '[]'::jsonb,
   created_by uuid references admins(id),
   created_at timestamptz default now()
 );
 
+-- ============================================
 -- 3. Tabel registrasi
--- catering_choice: menyimpan "id" dari salah satu opsi di catering_options (bukan gambar)
--- bukti_url: URL screenshot yang di-upload ke bucket "bukti-sg-invitation"
+-- jenis: kategori utama (member / pengurus / izin)
+-- identitas_izin: khusus jenis='izin', menentukan dia "sebenarnya" member atau pengurus
+-- ============================================
 create table registrations (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references events(id) on delete cascade,
+
   jenis text not null check (jenis in ('member', 'pengurus', 'izin')),
+  identitas_izin text check (identitas_izin in ('member', 'pengurus')), -- hanya diisi kalau jenis = izin
+
   nama text not null,
   nim text not null,
   jurusan text not null,
-  angkatan text,
-  jabatan text,
-  alasan_tidak_hadir text,
-  catering_choice text,   -- diisi id menu, contoh: 'nasi-goreng'
-  bukti_url text,         -- diisi URL screenshot, contoh: 'https://xxx.supabase.co/storage/v1/object/public/bukti-sg-invitation/xxx.jpg'
+  angkatan text,   -- diisi kalau jenis=member, atau jenis=izin & identitas_izin=member
+  jabatan text,    -- diisi kalau jenis=pengurus, atau jenis=izin & identitas_izin=pengurus
+
+  alasan_tidak_hadir text,     -- wajib kalau jenis = izin
+  bukti_perizinan_url text,    -- wajib kalau jenis = izin (menggantikan bukti SG invitation)
+
+  catering_choices jsonb,      -- wajib kalau jenis = member/pengurus (hadir)
+  total_harga numeric(10,2),
+  bukti_bayar_url text,        -- wajib kalau jenis = member/pengurus (hadir)
+
   created_at timestamptz default now(),
 
-  -- Validasi tambahan: kalau bukan izin, wajib isi catering & bukti
+  -- Validasi jalur HADIR (member/pengurus): wajib pilih catering + bukti bayar
   constraint check_hadir_lengkap check (
-    jenis = 'izin' 
-    or (catering_choice is not null and bukti_url is not null)
+    jenis = 'izin'
+    or (
+      catering_choices is not null
+      and jsonb_array_length(catering_choices) > 0
+      and bukti_bayar_url is not null
+    )
   ),
-  -- Validasi: kalau izin, wajib isi alasan
-  constraint check_izin_ada_alasan check (
-    jenis != 'izin' or alasan_tidak_hadir is not null
+
+  -- Validasi jalur IZIN: wajib pilih identitas, alasan, dan bukti perizinan
+  constraint check_izin_lengkap check (
+    jenis != 'izin'
+    or (
+      identitas_izin is not null
+      and alasan_tidak_hadir is not null
+      and bukti_perizinan_url is not null
+    )
+  ),
+
+  -- Validasi field identitas sesuai kategori
+  constraint check_field_identitas check (
+    (jenis = 'member' and angkatan is not null)
+    or (jenis = 'pengurus' and jabatan is not null)
+    or (jenis = 'izin' and identitas_izin = 'member' and angkatan is not null)
+    or (jenis = 'izin' and identitas_izin = 'pengurus' and jabatan is not null)
   )
 );
 
@@ -56,7 +94,7 @@ create index idx_events_kode on events(kode_unik);
 create index idx_registrations_event on registrations(event_id);
 
 -- ============================================
--- ROW LEVEL SECURITY (sama seperti sebelumnya)
+-- ROW LEVEL SECURITY
 -- ============================================
 
 alter table admins enable row level security;
@@ -81,12 +119,23 @@ create policy "admin read own registrations" on registrations
     )
   );
 
+-- ============================================
+-- RPC FUNCTION: validasi kode unik
+-- ============================================
+
 create or replace function validate_event_code(input_code text)
-returns table(event_id uuid, nama_acara text, catering_options jsonb)
+returns table(
+  event_id uuid,
+  nama_acara text,
+  deskripsi text,
+  tanggal_acara date,
+  jam_acara time,
+  catering_options jsonb
+)
 language sql
 security definer
 as $$
-  select id, nama_acara, catering_options
+  select id, nama_acara, deskripsi, tanggal_acara, jam_acara, catering_options
   from events
   where kode_unik = input_code;
 $$;

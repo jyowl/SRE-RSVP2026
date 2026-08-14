@@ -729,9 +729,19 @@ input, select, textarea {
   font-weight: 600;
   color: var(--color-text-light);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  position: relative;
+  padding-right: 28px; /* ruang untuk catering-check */
+}
+
+.catering-card-price {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--color-gold);
+  opacity: 0.9;
+  letter-spacing: 0.01em;
 }
 
 .catering-check {
@@ -745,10 +755,108 @@ input, select, textarea {
   flex-shrink: 0;
   opacity: 0;
   transition: opacity var(--transition);
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
 }
 
 .catering-card.selected .catering-check {
   opacity: 1;
+}
+
+/* ========================
+   Payment Summary
+   ======================== */
+.payment-summary-card {
+  background: linear-gradient(
+    135deg,
+    rgba(232, 184, 75, 0.06) 0%,
+    rgba(13, 31, 26, 0.95) 100%
+  );
+  border: 1px solid rgba(232, 184, 75, 0.25) !important;
+}
+
+.payment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 0.9rem;
+}
+
+.payment-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+.payment-value {
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-align: right;
+}
+
+.payment-divider {
+  height: 1px;
+  background: rgba(232, 184, 75, 0.15);
+  margin: 8px 0;
+}
+
+.payment-total {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #ffffff;
+  padding-top: 12px;
+}
+
+.payment-total-amount {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-gold);
+  text-shadow: 0 0 20px rgba(232, 184, 75, 0.4);
+}
+
+/* ========================
+   QR Code Display
+   ======================== */
+.qr-code-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(232, 184, 75, 0.15);
+}
+
+.qr-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  width: fit-content;
+  margin: 0 auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(232, 184, 75, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.qr-code-box:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(232, 184, 75, 0.35);
+}
+
+.qr-code-img {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .qr-code-img {
+    width: 160px;
+    height: 160px;
+  }
 }
 
 /* ========================

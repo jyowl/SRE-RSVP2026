@@ -18,11 +18,17 @@ export default function LoginPage() {
     }
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: form.email.trim(),
         password: form.password,
       })
       if (error) throw error
+
+      // Pastikan user ada di tabel admins (FK: events.created_by → admins.id)
+      await supabase
+        .from('admins')
+        .upsert({ id: data.user.id }, { onConflict: 'id' })
+
       toast.success('Login berhasil! Memuat dashboard...')
       navigate('/admin/dashboard')
     } catch (err) {
@@ -31,6 +37,7 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
+
 
   return (
     <div style={{

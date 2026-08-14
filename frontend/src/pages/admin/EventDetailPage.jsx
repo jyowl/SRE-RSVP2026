@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { exportToCSV, formatDate } from '../../lib/utils'
+import { uploadQRCode } from '../../lib/storage'
 import AdminSidebar from '../../components/layout/AdminSidebar'
 
 const JENIS_LABEL = { member: 'Member', pengurus: 'Pengurus', izin: 'Izin' }
@@ -18,6 +19,9 @@ export default function EventDetailPage() {
   const [search, setSearch] = useState('')
   const [filterJenis, setFilterJenis] = useState('all')
   const [selectedBukti, setSelectedBukti] = useState(null) // for lightbox
+  const [selectedBuktiBayar, setSelectedBuktiBayar] = useState(null) // for lightbox bukti bayar
+  const [qrUploading, setQrUploading] = useState(false)
+  const qrInputRef = useRef(null)
 
   useEffect(() => {
     fetchData()
@@ -58,11 +62,10 @@ export default function EventDetailPage() {
     izin: registrations.filter(r => r.jenis === 'izin').length,
   }
 
-  // Get catering name
-  function getCateringName(choice) {
-    if (!choice || !event?.catering_options) return '-'
-    const opt = event.catering_options.find(c => c.id === choice)
-    return opt?.name || choice
+  // Ambil nama-nama catering dari catering_choices (jsonb array [{id, name, price}])
+  function getCateringNames(choices) {
+    if (!choices || !Array.isArray(choices) || choices.length === 0) return '-'
+    return choices.map(c => c.name || c.id).join(', ')
   }
 
   function handleExport() {
@@ -75,15 +78,46 @@ export default function EventDetailPage() {
       NIM: r.nim,
       Jurusan: r.jurusan,
       Jenis: JENIS_LABEL[r.jenis],
+      'Identitas Izin': r.identitas_izin || '-',
       Angkatan: r.angkatan || '-',
       Jabatan: r.jabatan || '-',
-      Catering: getCateringName(r.catering_choice),
+      Catering: getCateringNames(r.catering_choices),
+      'Total Harga': r.total_harga != null ? r.total_harga : '-',
       'Alasan Izin': r.alasan_tidak_hadir || '-',
-      'Bukti SG': r.bukti_url || '-',
+      'Bukti Perizinan': r.bukti_perizinan_url || '-',
+      'Bukti Bayar': r.bukti_bayar_url || '-',
       'Tanggal Daftar': new Date(r.created_at).toLocaleString('id-ID'),
     }))
     exportToCSV(rows, `registrasi-${event?.kode_unik || id}.csv`)
     toast.success(`${rows.length} data diexport`)
+  }
+
+  async function handleQRUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('File harus berupa gambar')
+      return
+    }
+    setQrUploading(true)
+    try {
+      toast.loading('Mengupload QR Code...', { id: 'qr-upload' })
+      const url = await uploadQRCode(file, id)
+      const { error } = await supabase
+        .from('events')
+        .update({ qris_url: url })
+        .eq('id', id)
+      if (error) throw error
+      setEvent((prev) => ({ ...prev, qris_url: url }))
+      toast.dismiss('qr-upload')
+      toast.success('QR Code berhasil diupload!')
+    } catch (err) {
+      toast.dismiss('qr-upload')
+      toast.error(err?.message || 'Gagal upload QR Code')
+    } finally {
+      setQrUploading(false)
+      if (qrInputRef.current) qrInputRef.current.value = ''
+    }
   }
 
   if (loading) {
@@ -123,9 +157,14 @@ export default function EventDetailPage() {
               <div className="section-tag" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', fontWeight: 600, color: '#10b981', marginBottom: '4px' }}>
                 DATA REGISTRASI
               </div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 700, margin: '4px 0 10px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 700, margin: '4px 0 6px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
                 {event?.nama_acara}
               </h1>
+              {event?.deskripsi && (
+                <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem', marginBottom: '8px', maxWidth: '480px' }}>
+                  {event.deskripsi}
+                </p>
+              )}
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', fontSize: '0.8rem', borderRadius: '20px' }}>
                   🔑 {event?.kode_unik}
@@ -133,6 +172,11 @@ export default function EventDetailPage() {
                 {event?.tanggal_acara && (
                   <span className="text-muted text-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
                     📅 {formatDate(event.tanggal_acara)}
+                  </span>
+                )}
+                {event?.jam_acara && (
+                  <span className="text-muted text-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                    🕐 {event.jam_acara.substring(0, 5)} WIB
                   </span>
                 )}
               </div>
@@ -154,6 +198,85 @@ export default function EventDetailPage() {
             >
               📥 Export CSV ({filtered.length})
             </button>
+          </div>
+        </div>
+
+        {/* QR Code Upload Panel */}
+        <div
+          style={{
+            marginBottom: '28px',
+            padding: '20px 24px',
+            borderRadius: '12px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(232,184,75,0.2)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                QR Code Pembayaran
+              </div>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', margin: 0 }}>
+                {event?.qris_url
+                  ? 'QR Code sudah diupload. Klik "Ganti" untuk mengubah.'
+                  : 'Belum ada QRIS. Upload agar peserta bisa scan untuk bayar.'}
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {event?.qris_url && (
+                <div
+                  style={{
+                    width: '72px', height: '72px',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(232,184,75,0.4)',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  onClick={() => setSelectedBukti(event.qris_url)}
+                  title="Klik untuk preview"
+                >
+                  <img
+                    src={event.qris_url}
+                    alt="QR Code"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+              )}
+              <input
+                ref={qrInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="qr-upload-input"
+                onChange={handleQRUpload}
+              />
+              <label htmlFor="qr-upload-input">
+                <button
+                  type="button"
+                  className={`btn btn-sm ${event?.qris_url ? 'btn-ghost' : 'btn-primary'}`}
+                  disabled={qrUploading}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '8px 16px', borderRadius: '8px', fontWeight: 600,
+                    border: event?.qris_url ? '1px solid rgba(232,184,75,0.4)' : undefined,
+                    pointerEvents: qrUploading ? 'none' : 'auto',
+                  }}
+                  onClick={() => qrInputRef.current?.click()}
+                  id="upload-qr-btn"
+                >
+                  {qrUploading ? (
+                    <><div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> Mengupload...</>
+                  ) : event?.qris_url ? (
+                    <>🔄 Ganti QRIS</>
+                  ) : (
+                    <>📷 Upload QRIS</>
+                  )}
+                </button>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -227,7 +350,8 @@ export default function EventDetailPage() {
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Jenis</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Detail</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Catering</th>
-                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>Bukti SG</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>Bukti Perizinan</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>Bukti Bayar</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Tanggal Daftar</th>
                 </tr>
               </thead>
@@ -250,17 +374,23 @@ export default function EventDetailPage() {
                       </span>
                     </td>
                     <td className="text-sm text-muted" style={{ padding: '12px 16px' }}>
-                      {r.angkatan ? `Angkatan ${r.angkatan}` :
-                       r.jabatan ? r.jabatan :
-                       r.alasan_tidak_hadir ?
-                         <span title={r.alasan_tidak_hadir} style={{ cursor: 'help', textDecoration: 'underline dotted', opacity: 0.9 }}>
-                           {r.alasan_tidak_hadir.substring(0, 30)}{r.alasan_tidak_hadir.length > 30 ? '...' : ''}
-                         </span>
-                       : '-'}
+                      {r.jenis === 'izin'
+                        ? `Izin (${r.identitas_izin === 'member' ? 'Member' : r.identitas_izin === 'pengurus' ? 'Pengurus' : '-'})`
+                        : r.angkatan ? `Angkatan ${r.angkatan}`
+                        : r.jabatan ? r.jabatan
+                        : '-'
+                      }
+                      {r.jenis === 'izin' && r.alasan_tidak_hadir && (
+                        <span title={r.alasan_tidak_hadir} style={{ display: 'block', fontSize: '0.75rem', opacity: 0.7, cursor: 'help', textDecoration: 'underline dotted', marginTop: '2px' }}>
+                          {r.alasan_tidak_hadir.substring(0, 25)}{r.alasan_tidak_hadir.length > 25 ? '...' : ''}
+                        </span>
+                      )}
                     </td>
-                    <td className="text-sm" style={{ padding: '12px 16px', opacity: 0.85 }}>{getCateringName(r.catering_choice)}</td>
+                    <td className="text-sm" style={{ padding: '12px 16px', opacity: 0.85, maxWidth: '200px' }}>
+                      {getCateringNames(r.catering_choices)}
+                    </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      {r.bukti_url ? (
+                      {r.bukti_perizinan_url ? (
                         <button
                           className="btn btn-ghost btn-sm"
                           style={{ 
@@ -272,10 +402,33 @@ export default function EventDetailPage() {
                             alignItems: 'center',
                             gap: '4px'
                           }}
-                          onClick={() => setSelectedBukti(r.bukti_url)}
-                          id={`view-bukti-${r.id}`}
+                          onClick={() => setSelectedBukti(r.bukti_perizinan_url)}
+                          id={`view-bukti-perizinan-${r.id}`}
                         >
                           👁️ Lihat
+                        </button>
+                      ) : (
+                        <span className="text-muted text-sm">-</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      {r.bukti_bayar_url ? (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ 
+                            fontSize: '0.75rem', 
+                            padding: '4px 10px', 
+                            borderRadius: '6px',
+                            border: '1px solid rgba(232,184,75,0.3)',
+                            color: '#e8b84b',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          onClick={() => setSelectedBuktiBayar(r.bukti_bayar_url)}
+                          id={`view-bukti-bayar-${r.id}`}
+                        >
+                          💳 Lihat
                         </button>
                       ) : (
                         <span className="text-muted text-sm">-</span>
@@ -292,7 +445,7 @@ export default function EventDetailPage() {
         )}
       </main>
 
-      {/* Lightbox Modal */}
+      {/* Lightbox Modal — Bukti SG & QR Preview */}
       {selectedBukti && (
         <div
           style={{
@@ -318,7 +471,7 @@ export default function EventDetailPage() {
           >✕</button>
           <img
             src={selectedBukti}
-            alt="Bukti SG Invitation"
+            alt="Preview"
             style={{ 
               maxWidth: '90vw', 
               maxHeight: '85vh', 
@@ -329,6 +482,49 @@ export default function EventDetailPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* Lightbox Modal — Bukti Bayar */}
+      {selectedBuktiBayar && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+          onClick={() => setSelectedBuktiBayar(null)}
+        >
+          <button
+            style={{ 
+              position: 'absolute', top: '20px', right: '20px', 
+              background: 'rgba(232,184,75,0.2)', border: 'none', 
+              color: 'white', width: '40px', height: '40px', 
+              borderRadius: '50%', fontSize: '18px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.2s'
+            }}
+            onClick={() => setSelectedBuktiBayar(null)}
+          >✕</button>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '16px', fontSize: '0.85rem' }}>💳 Bukti Pembayaran</p>
+            <img
+              src={selectedBuktiBayar}
+              alt="Bukti Pembayaran"
+              style={{ 
+                maxWidth: '90vw', 
+                maxHeight: '80vh', 
+                borderRadius: '12px', 
+                objectFit: 'contain',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                border: '1px solid rgba(232,184,75,0.3)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </div>
