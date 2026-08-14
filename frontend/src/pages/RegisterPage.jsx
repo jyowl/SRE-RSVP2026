@@ -16,7 +16,7 @@ const ROLE_META = {
   izin: { icon: '📋', title: 'Izin', desc: 'Tidak dapat hadir' },
 }
 
-const JENIS_LABEL = { member: 'Member', pengurus: 'Pengurus', izin: 'Perizinan Berhasil' }
+const JENIS_LABEL = { member: 'Member', pengurus: 'Pengurus', izin: 'Izin Tidak Hadir' }
 
 const ANGKATAN_OPTIONS = ['2020', '2021', '2022', '2023', '2024', '2025']
 
@@ -691,7 +691,7 @@ function SuccessModalContent({ data, onClose }) {
       </div>
 
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', marginBottom: '10px' }}>
-        Pendaftaran Berhasil!
+        {data.jenis === 'izin' ? 'Perizinan Berhasil!' : 'Pendaftaran Berhasil!'}
       </h2>
       <p className="text-light text-sm" style={{ marginBottom: '24px', lineHeight: 1.7 }}>
         {data.nama ? `Terima kasih, ${data.nama}! ` : ''}
