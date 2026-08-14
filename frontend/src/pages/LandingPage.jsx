@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import sreLogoWhite from '../assets/sre-logo-white.png'
-import bgGlow from '../assets/bg-glow.png'
+import bgGlow from '../assets/bg-land.jpg'
 
 export default function LandingPage() {
   const [code, setCode] = useState('')

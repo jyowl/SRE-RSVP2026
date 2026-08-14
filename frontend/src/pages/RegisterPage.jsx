@@ -8,7 +8,7 @@ import CateringPicker from '../components/forms/CateringPicker'
 import ImageUpload from '../components/ui/ImageUpload'
 import Modal from '../components/ui/Modal'
 import sreLogoWhite from '../assets/sre-logo-white.png'
-import bgGlow from '../assets/bg-glow.png'
+import bgGlow from '../assets/bg-land.jpg'
 
 const ROLE_META = {
   member: { icon: '🎓', title: 'Member', desc: 'Anggota SRE aktif' },
