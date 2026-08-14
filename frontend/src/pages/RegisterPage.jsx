@@ -16,7 +16,7 @@ const ROLE_META = {
   izin: { icon: '📋', title: 'Izin', desc: 'Tidak dapat hadir' },
 }
 
-const JENIS_LABEL = { member: 'Member', pengurus: 'Pengurus', izin: 'Izin Tidak Hadir' }
+const JENIS_LABEL = { member: 'Member', pengurus: 'Pengurus', izin: 'Perizinan Berhasil' }
 
 const ANGKATAN_OPTIONS = ['2020', '2021', '2022', '2023', '2024', '2025']
 
@@ -286,7 +286,7 @@ export default function RegisterPage() {
         ← Kembali
       </button>
 
-      <div className="page-wrapper" style={{ position: 'relative', zIndex: 10, paddingTop: '40px' }}>
+      <div className="page-wrapper" style={{ position: 'relative', zIndex: 10, paddingTop: '104px' }}>
         <div className="container-sm" style={{ padding: '16px 24px 80px' }}>
 
           {/* Logo */}
