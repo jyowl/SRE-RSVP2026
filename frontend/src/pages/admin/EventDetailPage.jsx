@@ -100,55 +100,104 @@ export default function EventDetailPage() {
   return (
     <div className="admin-layout">
       <AdminSidebar />
-      <main className="admin-main">
-        {/* Header */}
-        <div className="admin-header">
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/dashboard')} style={{ marginBottom: '16px' }}>
-            ← Kembali
+      <main className="admin-main" style={{ padding: '28px 32px' }}>
+        {/* Header Section */}
+        <div className="admin-header" style={{ marginBottom: '28px' }}>
+          <button 
+            className="btn btn-ghost btn-sm" 
+            onClick={() => navigate('/admin/dashboard')} 
+            style={{ 
+              marginBottom: '20px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              opacity: 0.85,
+              transition: 'all 0.2s'
+            }}
+          >
+            ← Kembali ke Dashboard
           </button>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
             <div>
-              <div className="section-tag">Data Registrasi</div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem', marginBottom: '4px' }}>
+              <div className="section-tag" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', fontWeight: 600, color: '#10b981', marginBottom: '4px' }}>
+                DATA REGISTRASI
+              </div>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 700, margin: '4px 0 10px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
                 {event?.nama_acara}
               </h1>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span className="badge badge-gold">🔑 {event?.kode_unik}</span>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', fontSize: '0.8rem', borderRadius: '20px' }}>
+                  🔑 {event?.kode_unik}
+                </span>
                 {event?.tanggal_acara && (
-                  <span className="text-muted text-sm">📅 {formatDate(event.tanggal_acara)}</span>
+                  <span className="text-muted text-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                    📅 {formatDate(event.tanggal_acara)}
+                  </span>
                 )}
               </div>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={handleExport} id="export-csv-btn">
-              ⬇️ Export CSV ({filtered.length})
+            
+            <button 
+              className="btn btn-primary btn-sm" 
+              onClick={handleExport} 
+              id="export-csv-btn"
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '10px 18px', 
+                fontWeight: 600,
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)'
+              }}
+            >
+              📥 Export CSV ({filtered.length})
             </button>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-          <SummaryCard label="Member" value={summary.member} color="var(--color-success)" />
-          <SummaryCard label="Pengurus" value={summary.pengurus} color="var(--color-gold)" />
-          <SummaryCard label="Izin" value={summary.izin} color="var(--color-error)" />
-          <SummaryCard label="Total" value={registrations.length} color="var(--color-text-white)" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+          <SummaryCard label="Member" value={summary.member} color="#34d399" icon="👤" />
+          <SummaryCard label="Pengurus" value={summary.pengurus} color="#fbbf24" icon="⭐" />
+          <SummaryCard label="Izin" value={summary.izin} color="#f87171" icon="✉️" />
+          <SummaryCard label="Total Pendaftar" value={registrations.length} color="#ffffff" icon="📊" />
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          <input
-            className="form-input"
-            type="text"
-            placeholder="🔍 Cari nama atau NIM..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ maxWidth: '300px', padding: '10px 14px' }}
-            id="search-registrations"
-          />
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: '1', maxWidth: '320px' }}>
+            <input
+              className="form-input"
+              type="text"
+              placeholder="Cari nama atau NIM..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '10px 14px 10px 38px', 
+                borderRadius: '8px',
+                fontSize: '0.9rem'
+              }}
+              id="search-registrations"
+            />
+            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, pointerEvents: 'none' }}>
+              🔍
+            </span>
+          </div>
+
           <select
             className="form-select"
             value={filterJenis}
             onChange={(e) => setFilterJenis(e.target.value)}
-            style={{ maxWidth: '180px', padding: '10px 40px 10px 14px' }}
+            style={{ 
+              maxWidth: '180px', 
+              padding: '10px 36px 10px 14px', 
+              borderRadius: '8px',
+              fontSize: '0.9rem',
+              cursor: 'pointer'
+            }}
             id="filter-jenis"
           >
             <option value="all">Semua Jenis</option>
@@ -158,55 +207,71 @@ export default function EventDetailPage() {
           </select>
         </div>
 
-        {/* Table */}
+        {/* Table / Empty State */}
         {filtered.length === 0 ? (
-          <div className="card-glass" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔍</div>
-            <p className="text-muted">{registrations.length === 0 ? 'Belum ada pendaftar.' : 'Tidak ada hasil yang cocok.'}</p>
+          <div className="card-glass" style={{ textAlign: 'center', padding: '60px 24px', borderRadius: '12px', backdropFilter: 'blur(8px)' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '12px', opacity: 0.7 }}>🔍</div>
+            <p className="text-muted" style={{ fontSize: '1rem' }}>
+              {registrations.length === 0 ? 'Belum ada pendaftar pada acara ini.' : 'Tidak ada hasil yang cocok dengan pencarian Anda.'}
+            </p>
           </div>
         ) : (
-          <div className="table-wrapper">
-            <table className="data-table">
+          <div className="table-wrapper" style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <table className="data-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Nama</th>
-                  <th>NIM</th>
-                  <th>Jurusan</th>
-                  <th>Jenis</th>
-                  <th>Detail</th>
-                  <th>Catering</th>
-                  <th>Bukti SG</th>
-                  <th>Tanggal Daftar</th>
+                <tr style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>#</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Nama</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>NIM</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Jurusan</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Jenis</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Detail</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Catering</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>Bukti SG</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Tanggal Daftar</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r, i) => (
-                  <tr key={r.id}>
-                    <td className="text-muted text-sm">{i + 1}</td>
-                    <td style={{ fontWeight: 600, color: 'var(--color-text-white)' }}>{r.nama}</td>
-                    <td className="text-sm">{r.nim}</td>
-                    <td className="text-sm" style={{ maxWidth: '160px' }}>{r.jurusan}</td>
-                    <td>
-                      <span className={`badge ${JENIS_BADGE[r.jenis]}`}>
+                  <tr 
+                    key={r.id} 
+                    style={{ 
+                      transition: 'background 0.2s',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}
+                  >
+                    <td className="text-muted text-sm" style={{ padding: '12px 16px' }}>{i + 1}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#ffffff' }}>{r.nama}</td>
+                    <td className="text-sm" style={{ padding: '12px 16px', opacity: 0.85 }}>{r.nim}</td>
+                    <td className="text-sm" style={{ padding: '12px 16px', maxWidth: '160px', opacity: 0.85 }}>{r.jurusan}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span className={`badge ${JENIS_BADGE[r.jenis]}`} style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>
                         {JENIS_LABEL[r.jenis]}
                       </span>
                     </td>
-                    <td className="text-sm text-muted">
+                    <td className="text-sm text-muted" style={{ padding: '12px 16px' }}>
                       {r.angkatan ? `Angkatan ${r.angkatan}` :
                        r.jabatan ? r.jabatan :
                        r.alasan_tidak_hadir ?
-                         <span title={r.alasan_tidak_hadir} style={{ cursor: 'help', textDecoration: 'underline dotted' }}>
+                         <span title={r.alasan_tidak_hadir} style={{ cursor: 'help', textDecoration: 'underline dotted', opacity: 0.9 }}>
                            {r.alasan_tidak_hadir.substring(0, 30)}{r.alasan_tidak_hadir.length > 30 ? '...' : ''}
                          </span>
                        : '-'}
                     </td>
-                    <td className="text-sm">{getCateringName(r.catering_choice)}</td>
-                    <td>
+                    <td className="text-sm" style={{ padding: '12px 16px', opacity: 0.85 }}>{getCateringName(r.catering_choice)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       {r.bukti_url ? (
                         <button
                           className="btn btn-ghost btn-sm"
-                          style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                          style={{ 
+                            fontSize: '0.75rem', 
+                            padding: '4px 10px', 
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
                           onClick={() => setSelectedBukti(r.bukti_url)}
                           id={`view-bukti-${r.id}`}
                         >
@@ -216,7 +281,7 @@ export default function EventDetailPage() {
                         <span className="text-muted text-sm">-</span>
                       )}
                     </td>
-                    <td className="text-xs text-muted">
+                    <td className="text-xs text-muted" style={{ padding: '12px 16px' }}>
                       {new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </td>
                   </tr>
@@ -227,25 +292,41 @@ export default function EventDetailPage() {
         )}
       </main>
 
-      {/* Bukti Lightbox */}
+      {/* Lightbox Modal */}
       {selectedBukti && (
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.9)',
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '24px',
+            animation: 'fadeIn 0.2s ease-out'
           }}
           onClick={() => setSelectedBukti(null)}
         >
           <button
-            style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', fontSize: '20px', cursor: 'pointer' }}
+            style={{ 
+              position: 'absolute', top: '20px', right: '20px', 
+              background: 'rgba(255,255,255,0.15)', border: 'none', 
+              color: 'white', width: '40px', height: '40px', 
+              borderRadius: '50%', fontSize: '18px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.2s'
+            }}
             onClick={() => setSelectedBukti(null)}
           >✕</button>
           <img
             src={selectedBukti}
             alt="Bukti SG Invitation"
-            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '12px', objectFit: 'contain' }}
+            style={{ 
+              maxWidth: '90vw', 
+              maxHeight: '85vh', 
+              borderRadius: '12px', 
+              objectFit: 'contain',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -254,11 +335,29 @@ export default function EventDetailPage() {
   )
 }
 
-function SummaryCard({ label, value, color }) {
+function SummaryCard({ label, value, color, icon }) {
   return (
-    <div className="card-glass" style={{ textAlign: 'center', padding: '16px 12px' }}>
-      <div style={{ fontSize: '1.8rem', fontWeight: 800, color, fontFamily: 'var(--font-serif)' }}>{value}</div>
-      <div className="text-muted text-xs">{label}</div>
+    <div 
+      className="card-glass" 
+      style={{ 
+        padding: '18px 16px', 
+        borderRadius: '12px', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        justify: 'space-between',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(10px)',
+        transition: 'transform 0.2s, border-color 0.2s'
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span className="text-muted text-xs" style={{ fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.02em' }}>{label}</span>
+        <span style={{ fontSize: '1rem', opacity: 0.8 }}>{icon}</span>
+      </div>
+      <div style={{ fontSize: '2.2rem', fontWeight: 800, color, fontFamily: 'var(--font-serif)', lineHeight: 1 }}>
+        {value}
+      </div>
     </div>
   )
 }

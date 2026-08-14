@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import sreLogoWhite from '../assets/sre-logo-white.png'
+import bgGlow from '../assets/bg-glow.png'
 
 export default function LandingPage() {
   const [code, setCode] = useState('')
@@ -30,7 +31,6 @@ export default function LandingPage() {
       }
 
       const event = data[0]
-      // Save event data to sessionStorage for RegisterPage
       sessionStorage.setItem('sre_event', JSON.stringify(event))
       toast.success(`Kode valid! Membuka formulir untuk "${event.nama_acara}"...`)
       setTimeout(() => navigate(`/register/${event.event_id}`), 800)
@@ -43,10 +43,23 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="hero-section">
-      {/* Background */}
-      <div className="hero-bg" />
-      <div className="hero-grid" />
+    <div 
+      className="hero-section"
+      style={{
+        backgroundImage: `url(${bgGlow})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
+        minHeight: '100vh',
+        width: '100%',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between'
+      }}
+    >
+      <div className="hero-grid" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
       {/* Floating decorative icons */}
       <FloatingIcon icon="🌱" style={{ top: '18%', left: '6%' }} delay="0s" />
@@ -56,7 +69,7 @@ export default function LandingPage() {
       <FloatingIcon icon="💧" style={{ top: '60%', right: '5%' }} delay="0.8s" />
 
       {/* Navbar */}
-      <nav className="navbar">
+      <nav className="navbar" style={{ width: '100%', position: 'relative', zIndex: 10 }}>
         <div className="navbar-logo">
           <img src={sreLogoWhite} alt="SRE Logo" />
           <div className="navbar-title">
@@ -69,65 +82,69 @@ export default function LandingPage() {
         </ul>
       </nav>
 
-      {/* Content */}
-      <div className="hero-content animate-in">
-        {/* Tag */}
-        <div className="badge badge-gold" style={{ marginBottom: '24px' }}>
-          <span>●</span> SRE RSVP 2026
-        </div>
-
-        {/* Title */}
-        <h1 className="section-title" style={{ marginBottom: '16px', fontSize: 'clamp(2.2rem, 6vw, 4rem)' }}>
-          Daftarkan<br />
-          <span className="text-gold">Kehadiranmu</span>
-        </h1>
-
-        <p className="section-subtitle" style={{ margin: '0 auto 40px', textAlign: 'center', fontSize: '1.05rem' }}>
-          Masukkan kode unik acara yang kamu dapatkan dari panitia untuk mengakses formulir pendaftaran.
-        </p>
-
-        {/* Code Input Form */}
-        <form onSubmit={handleValidate} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%', maxWidth: '420px', margin: '0 auto' }}>
-          <div style={{ position: 'relative', width: '100%' }}>
-            <input
-              id="event-code-input"
-              className="form-input"
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="Contoh: SRE-2026"
-              maxLength={20}
-              disabled={loading}
-              style={{
-                textAlign: 'center',
-                fontSize: '1.3rem',
-                fontWeight: '700',
-                letterSpacing: '0.12em',
-                padding: '16px 20px',
-                borderRadius: '16px',
-                textTransform: 'uppercase',
-              }}
-              autoFocus
-            />
+      {/* Content Outer Wrapper - Bikin Konten di Tengah Layar */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '40px 20px' }}>
+        <div className="hero-content animate-in" style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
+          {/* Tag */}
+          <div className="badge badge-gold" style={{ marginBottom: '24px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span>●</span> SRE RSVP 2026
           </div>
 
-          <button
-            id="validate-code-btn"
-            type="submit"
-            className="btn btn-primary btn-lg btn-full"
-            disabled={loading}
-          >
-            {loading ? (
-              <><div className="spinner" /> Memvalidasi...</>
-            ) : (
-              <>Buka Formulir →</>
-            )}
-          </button>
-        </form>
+          {/* Title */}
+          <h1 className="section-title" style={{ marginBottom: '16px', fontSize: 'clamp(2.2rem, 6vw, 4rem)', textAlign: 'center' }}>
+            Daftarkan<br />
+            <span className="text-gold">Kehadiranmu</span>
+          </h1>
 
-        <p className="text-muted text-sm" style={{ marginTop: '20px', textAlign: 'center' }}>
-          Belum punya kode? Hubungi panitia SRE untuk mendapatkan kode acara.
-        </p>
+          <p className="section-subtitle" style={{ margin: '0 auto 40px', textAlign: 'center', fontSize: '1.05rem', maxWidth: '520px' }}>
+            Masukkan kode unik acara yang kamu dapatkan dari panitia untuk mengakses formulir pendaftaran.
+          </p>
+
+          {/* Code Input Form */}
+          <form onSubmit={handleValidate} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%', maxWidth: '420px', margin: '0 auto' }}>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input
+                id="event-code-input"
+                className="form-input"
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="Contoh: SRE-2026"
+                maxLength={20}
+                disabled={loading}
+                style={{
+                  textAlign: 'center',
+                  fontSize: '1.3rem',
+                  fontWeight: '700',
+                  letterSpacing: '0.12em',
+                  padding: '16px 20px',
+                  borderRadius: '16px',
+                  textTransform: 'uppercase',
+                  width: '100%'
+                }}
+                autoFocus
+              />
+            </div>
+
+            <button
+              id="validate-code-btn"
+              type="submit"
+              className="btn btn-primary btn-lg btn-full"
+              disabled={loading}
+              style={{ width: '100%' }}
+            >
+              {loading ? (
+                <><div className="spinner" /> Memvalidasi...</>
+              ) : (
+                <>Buka Formulir →</>
+              )}
+            </button>
+          </form>
+
+          <p className="text-muted text-sm" style={{ marginTop: '20px', textAlign: 'center' }}>
+            Belum punya kode? Hubungi panitia SRE untuk mendapatkan kode acara.
+          </p>
+        </div>
       </div>
 
       {/* Bottom fade */}
@@ -137,8 +154,9 @@ export default function LandingPage() {
         left: 0,
         right: 0,
         height: '120px',
-        background: 'linear-gradient(to top, var(--color-bg-dark), transparent)',
+        background: 'linear-gradient(to top, rgba(6,30,22,0.8), transparent)',
         pointerEvents: 'none',
+        zIndex: 5
       }} />
     </div>
   )
@@ -160,6 +178,7 @@ function FloatingIcon({ icon, style, delay }) {
       fontSize: '22px',
       animation: `float 6s ease-in-out infinite`,
       animationDelay: delay,
+      zIndex: 2,
       ...style,
       ['--float-delay']: delay,
     }}>

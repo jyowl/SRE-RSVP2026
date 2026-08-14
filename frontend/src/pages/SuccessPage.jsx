@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import sreLogoWhite from '../assets/sre-logo-white.png'
+import bgGlow from '../assets/bg-glow.png' // Import background gambar baru
 
 const JENIS_LABEL = {
   member: 'Member',
@@ -32,12 +33,25 @@ export default function SuccessPage() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'var(--color-bg-dark)',
+      backgroundColor: '#061e16',
       padding: '24px',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      {/* Background */}
-      <div className="hero-bg" style={{ position: 'fixed', inset: 0, zIndex: 0 }} />
-      <div className="hero-grid" style={{ position: 'fixed', inset: 0, zIndex: 0 }} />
+      {/* Background Image Container dengan Efek Blur */}
+      <div 
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundImage: `url(${bgGlow})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          filter: 'blur(6px)', // Efek blur halus
+          transform: 'scale(1.03)', // Mencegah pinggiran putih akibat blur
+          zIndex: 0
+        }}
+      />
 
       <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: '480px', width: '100%' }}>
 

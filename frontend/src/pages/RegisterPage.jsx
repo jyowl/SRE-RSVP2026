@@ -7,6 +7,7 @@ import { JURUSAN_OPTIONS } from '../lib/utils'
 import CateringPicker from '../components/forms/CateringPicker'
 import ImageUpload from '../components/ui/ImageUpload'
 import sreLogoWhite from '../assets/sre-logo-white.png'
+import bgGlow from '../assets/bg-glow.png'
 
 const ANGKATAN_OPTIONS = ['2020', '2021', '2022', '2023', '2024', '2025']
 
@@ -43,7 +44,6 @@ export default function RegisterPage() {
         }
       } catch (_) {}
     }
-    // Fetch directly if no cache
     fetchEvent()
   }, [eventId])
 
@@ -90,7 +90,6 @@ export default function RegisterPage() {
     if (form.jenis === 'pengurus' && !form.jabatan.trim()) errs.jabatan = 'Jabatan wajib diisi'
     if (form.jenis === 'izin' && !form.alasan_tidak_hadir.trim()) errs.alasan = 'Alasan wajib diisi'
 
-    // Member & Pengurus: wajib upload bukti + pilih catering (sesuai DB constraint)
     if (form.jenis === 'member' || form.jenis === 'pengurus') {
       if (!buktiFile) errs.bukti = 'Upload screenshot SG Invitation wajib'
       if (!form.catering_choice) errs.catering = 'Pilih menu catering wajib'
@@ -105,7 +104,6 @@ export default function RegisterPage() {
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
       toast.error('Lengkapi semua field yang wajib diisi')
-      // Scroll to first error
       const firstErrKey = Object.keys(errs)[0]
       document.getElementById(`field-${firstErrKey}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
@@ -113,10 +111,8 @@ export default function RegisterPage() {
 
     setSubmitting(true)
     try {
-      // 1. Generate a temp UUID for file naming
       const tempId = crypto.randomUUID()
 
-      // 2. Upload bukti if needed (Member/Pengurus)
       let buktiUrl = null
       if (buktiFile && (form.jenis === 'member' || form.jenis === 'pengurus')) {
         toast.loading('Mengupload bukti SG Invitation...', { id: 'upload' })
@@ -124,7 +120,6 @@ export default function RegisterPage() {
         toast.dismiss('upload')
       }
 
-      // 3. Insert to registrations
       const payload = {
         event_id: eventId,
         jenis: form.jenis,
@@ -141,7 +136,6 @@ export default function RegisterPage() {
       const { error } = await supabase.from('registrations').insert(payload)
       if (error) throw error
 
-      // 4. Save summary to sessionStorage for SuccessPage
       sessionStorage.setItem('sre_success', JSON.stringify({
         nama: form.nama,
         jenis: form.jenis,
@@ -172,9 +166,32 @@ export default function RegisterPage() {
   const isHadir = form.jenis === 'member' || form.jenis === 'pengurus'
 
   return (
-    <div style={{ background: 'var(--color-bg-dark)', minHeight: '100vh' }}>
+    <div 
+      style={{ 
+        position: 'relative',
+        backgroundColor: '#061e16',
+        minHeight: '100vh',
+        width: '100%',
+        overflow: 'hidden'
+      }}
+    >
+      {/* Background Image Container dengan Efek Blur */}
+      <div 
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundImage: `url(${bgGlow})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          filter: 'blur(6px)', // Ubah angka blur sesuai selera (misal 4px - 8px)
+          transform: 'scale(1.03)', // Mencegah pinggiran putih akibat efek blur
+          zIndex: 0
+        }}
+      />
+
       {/* Navbar */}
-      <nav className="navbar">
+      <nav className="navbar" style={{ position: 'relative', zIndex: 10 }}>
         <div className="navbar-logo">
           <img src={sreLogoWhite} alt="SRE Logo" />
           <div className="navbar-title">Society of<br />Renewable Energy</div>
@@ -184,7 +201,7 @@ export default function RegisterPage() {
         </button>
       </nav>
 
-      <div className="page-wrapper">
+      <div className="page-wrapper" style={{ position: 'relative', zIndex: 10 }}>
         <div className="container-sm" style={{ padding: '40px 24px 80px' }}>
 
           {/* Event Header */}
@@ -230,7 +247,6 @@ export default function RegisterPage() {
                       checked={form.jenis === role.value}
                       onChange={() => {
                         setField('jenis', role.value)
-                        // Reset conditional fields
                         setForm((prev) => ({
                           ...prev,
                           jenis: role.value,
