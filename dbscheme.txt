@@ -21,6 +21,9 @@ create table admins (
 -- ============================================
 -- 2. Tabel event
 -- Tambahan: jam_acara dan deskripsi
+-- catering_options: array JSON berisi {id, name, image_url, price, category}
+-- category: 'food' atau 'drink' (opsional, default dianggap 'food' di frontend
+-- kalau tidak diisi — dipakai untuk mengelompokkan tampilan menu saat RSVP)
 -- ============================================
 create table events (
   id uuid primary key default gen_random_uuid(),
@@ -30,6 +33,7 @@ create table events (
   tanggal_acara date,
   jam_acara time,
   catering_options jsonb not null default '[]'::jsonb,
+  qris_url text,   -- URL QRIS pembayaran, diupload admin lewat halaman Data Registrasi
   created_by uuid references admins(id),
   created_at timestamptz default now()
 );
@@ -37,20 +41,25 @@ create table events (
 -- ============================================
 -- 3. Tabel registrasi
 -- jenis: kategori utama (member / pengurus / izin)
--- identitas_izin: khusus jenis='izin', menentukan dia "sebenarnya" member atau pengurus
+-- Data diri (nama, nim, fakultas, jurusan, angkatan, jabatan) seragam dan
+-- wajib diisi untuk semua jenis pendaftaran:
+--  - angkatan: tahun angkatan, wajib untuk semua jenis
+--  - jabatan: otomatis 'Member' kalau jenis=member, diisi manual untuk
+--    pengurus/izin (izin tetap harus menyatakan jabatannya, atau 'Member'
+--    kalau dia member biasa)
 -- ============================================
 create table registrations (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references events(id) on delete cascade,
 
   jenis text not null check (jenis in ('member', 'pengurus', 'izin')),
-  identitas_izin text check (identitas_izin in ('member', 'pengurus')), -- hanya diisi kalau jenis = izin
 
   nama text not null,
   nim text not null,
+  fakultas text not null,
   jurusan text not null,
-  angkatan text,   -- diisi kalau jenis=member, atau jenis=izin & identitas_izin=member
-  jabatan text,    -- diisi kalau jenis=pengurus, atau jenis=izin & identitas_izin=pengurus
+  angkatan text not null,
+  jabatan text not null,
 
   alasan_tidak_hadir text,     -- wajib kalau jenis = izin
   bukti_perizinan_url text,    -- wajib kalau jenis = izin (menggantikan bukti SG invitation)
@@ -71,22 +80,13 @@ create table registrations (
     )
   ),
 
-  -- Validasi jalur IZIN: wajib pilih identitas, alasan, dan bukti perizinan
+  -- Validasi jalur IZIN: wajib isi alasan dan bukti perizinan
   constraint check_izin_lengkap check (
     jenis != 'izin'
     or (
-      identitas_izin is not null
-      and alasan_tidak_hadir is not null
+      alasan_tidak_hadir is not null
       and bukti_perizinan_url is not null
     )
-  ),
-
-  -- Validasi field identitas sesuai kategori
-  constraint check_field_identitas check (
-    (jenis = 'member' and angkatan is not null)
-    or (jenis = 'pengurus' and jabatan is not null)
-    or (jenis = 'izin' and identitas_izin = 'member' and angkatan is not null)
-    or (jenis = 'izin' and identitas_izin = 'pengurus' and jabatan is not null)
   )
 );
 
@@ -139,3 +139,29 @@ as $$
   from events
   where kode_unik = input_code;
 $$;
+
+-- ============================================
+-- MIGRATION: Data diri seragam untuk semua jenis
+-- (nama, nim, fakultas, jurusan, angkatan, jabatan sekarang wajib
+-- diisi untuk member/pengurus/izin — identitas_izin tidak dipakai lagi)
+-- ============================================
+
+-- 1. Tambah kolom fakultas
+alter table registrations add column if not exists fakultas text;
+update registrations set fakultas = 'Belum diisi' where fakultas is null;
+alter table registrations alter column fakultas set not null;
+
+-- 2. Isi nilai default untuk baris lama yang belum punya angkatan/jabatan,
+-- lalu wajibkan kedua kolom untuk semua baris baru
+update registrations set angkatan = coalesce(angkatan, '-') where angkatan is null;
+update registrations set jabatan = coalesce(jabatan, case when jenis = 'member' then 'Member' else '-' end) where jabatan is null;
+alter table registrations alter column angkatan set not null;
+alter table registrations alter column jabatan set not null;
+
+-- 3. identitas_izin sudah tidak relevan (semua jenis kini mengisi field yang sama)
+alter table registrations drop constraint if exists check_field_identitas;
+alter table registrations drop constraint if exists check_izin_lengkap;
+alter table registrations add constraint check_izin_lengkap check (
+  jenis != 'izin' or (alasan_tidak_hadir is not null and bukti_perizinan_url is not null)
+);
+alter table registrations drop column if exists identitas_izin;

@@ -60,6 +60,54 @@ export default function CateringPicker({ options = [], value = [], onChange, onP
 
   const isSelected = (id) => selectedIds.includes(id)
 
+  const foodItems = options.filter((o) => (o.category || 'food') === 'food')
+  const drinkItems = options.filter((o) => o.category === 'drink')
+  const hasCategories = drinkItems.length > 0
+
+  function renderCard(option) {
+    return (
+      <button
+        key={option.id}
+        type="button"
+        className={`catering-card ${isSelected(option.id) ? 'selected' : ''}`}
+        onClick={() => handleSelect(option)}
+        aria-pressed={isSelected(option.id)}
+        id={`catering-option-${option.id}`}
+      >
+        {option.image_url ? (
+          <img
+            src={option.image_url}
+            alt={option.name}
+            className="catering-card-img"
+            onError={(e) => {
+              e.target.style.display = 'none'
+              e.target.nextSibling.style.display = 'flex'
+            }}
+          />
+        ) : null}
+        <div
+          className="catering-card-img-placeholder"
+          style={{ display: option.image_url ? 'none' : 'flex' }}
+        >
+          🍽️
+        </div>
+        <div className="catering-card-label">
+          <span style={{ lineHeight: 1.3 }}>{option.name}</span>
+          {option.price != null && (
+            <span className="catering-card-price">
+              {option.price === 0 ? 'Gratis' : formatRupiah(option.price)}
+            </span>
+          )}
+          <div className="catering-check">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 5l2.5 2.5L8 3" stroke="#0d1f1a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </button>
+    )
+  }
+
   return (
     <div>
       {multiSelect && selectedIds.length > 0 && (
@@ -80,51 +128,25 @@ export default function CateringPicker({ options = [], value = [], onChange, onP
         </div>
       )}
 
-      <div
-        className="catering-grid"
-        style={error ? { outline: '2px solid var(--color-error)', borderRadius: 'var(--radius-md)', outlineOffset: '4px' } : {}}
-      >
-        {options.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            className={`catering-card ${isSelected(option.id) ? 'selected' : ''}`}
-            onClick={() => handleSelect(option)}
-            aria-pressed={isSelected(option.id)}
-            id={`catering-option-${option.id}`}
-          >
-            {option.image_url ? (
-              <img
-                src={option.image_url}
-                alt={option.name}
-                className="catering-card-img"
-                onError={(e) => {
-                  e.target.style.display = 'none'
-                  e.target.nextSibling.style.display = 'flex'
-                }}
-              />
-            ) : null}
-            <div
-              className="catering-card-img-placeholder"
-              style={{ display: option.image_url ? 'none' : 'flex' }}
-            >
-              🍽️
-            </div>
-            <div className="catering-card-label">
-              <span style={{ lineHeight: 1.3 }}>{option.name}</span>
-              {option.price != null && (
-                <span className="catering-card-price">
-                  {option.price === 0 ? 'Gratis' : formatRupiah(option.price)}
-                </span>
-              )}
-              <div className="catering-check">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 5l2.5 2.5L8 3" stroke="#0d1f1a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+      <div style={error ? { outline: '2px solid var(--color-error)', borderRadius: 'var(--radius-md)', outlineOffset: '4px', padding: '2px' } : {}}>
+        {hasCategories ? (
+          <>
+            {foodItems.length > 0 && (
+              <div className="menu-group">
+                <div className="menu-group-title">🍽️ Food</div>
+                <div className="catering-grid">{foodItems.map(renderCard)}</div>
               </div>
-            </div>
-          </button>
-        ))}
+            )}
+            {drinkItems.length > 0 && (
+              <div className="menu-group">
+                <div className="menu-group-title">🥤 Drink</div>
+                <div className="catering-grid">{drinkItems.map(renderCard)}</div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="catering-grid">{options.map(renderCard)}</div>
+        )}
       </div>
 
       {error && (

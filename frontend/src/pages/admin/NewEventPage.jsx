@@ -4,6 +4,12 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { uploadCateringImage } from '../../lib/storage'
 import AdminSidebar from '../../components/layout/AdminSidebar'
+import Modal from '../../components/ui/Modal'
+
+const CATEGORY_OPTIONS = [
+  { value: 'food', icon: '🍽️', label: 'Food' },
+  { value: 'drink', icon: '🥤', label: 'Drink' },
+]
 
 function generateMenuId(name) {
   return name
@@ -28,8 +34,9 @@ export default function NewEventPage() {
   const [errors, setErrors] = useState({})
 
   // Catering menu items
-  const [menuItems, setMenuItems] = useState([]) // { id, name, price, imageFile, imagePreview, imageUrl }
-  const [newMenu, setNewMenu] = useState({ name: '', price: '', imageFile: null, imagePreview: null })
+  const [menuItems, setMenuItems] = useState([]) // { id, name, price, category, imageFile, imagePreview, imageUrl }
+  const [newMenu, setNewMenu] = useState({ name: '', price: '', category: 'food', imageFile: null, imagePreview: null })
+  const [previewItem, setPreviewItem] = useState(null)
 
   function setField(key, val) {
     setForm((p) => ({ ...p, [key]: val }))
@@ -62,11 +69,12 @@ export default function NewEventPage() {
       id,
       name: newMenu.name.trim(),
       price: priceNum,
+      category: newMenu.category,
       imageFile: newMenu.imageFile,
       imagePreview: newMenu.imagePreview,
       imageUrl: null,
     }])
-    setNewMenu({ name: '', price: '', imageFile: null, imagePreview: null })
+    setNewMenu({ name: '', price: '', category: 'food', imageFile: null, imagePreview: null })
   }
 
   function removeMenuItem(id) {
@@ -106,7 +114,7 @@ export default function NewEventPage() {
         if (item.imageFile) {
           toast.loading(`Mengupload foto "${item.name}"...`, { id: 'upload-catering' })
           const url = await uploadCateringImage(item.imageFile, item.id)
-          uploadedMenus.push({ id: item.id, name: item.name, image_url: url, price: item.price ?? null })
+          uploadedMenus.push({ id: item.id, name: item.name, image_url: url, price: item.price ?? null, category: item.category })
         }
       }
       toast.dismiss('upload-catering')
@@ -223,7 +231,7 @@ export default function NewEventPage() {
                   className="form-input"
                   value={form.deskripsi}
                   onChange={(e) => setField('deskripsi', e.target.value)}
-                  placeholder="Deskripsikan acara ini (opsional)"
+                  placeholder="Contoh: Rapat rutin bulanan seluruh anggota SRE untuk membahas program kerja Q1 2026 (opsional)"
                   rows={3}
                   style={{ resize: 'vertical', fontFamily: 'inherit' }}
                 />
@@ -240,34 +248,53 @@ export default function NewEventPage() {
               Tambahkan pilihan menu catering beserta foto. Member & Pengurus wajib memilih satu menu saat mendaftar.
             </p>
 
-            {/* Existing items */}
+            {/* Existing items, grouped by category */}
             {menuItems.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-                {menuItems.map((item) => (
-                  <div key={item.id} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--color-border-gold)' }}>
-                    {item.imagePreview && (
-                      <img src={item.imagePreview} alt={item.name} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover' }} />
-                    )}
-                    <div style={{ padding: '8px', background: 'var(--color-bg-card)', fontSize: '0.82rem', fontWeight: 600 }}>
-                      {item.name}
-                      {item.price != null && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-gold)', fontWeight: 500, marginTop: '2px' }}>
-                          {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.price)}
-                        </div>
-                      )}
+              <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {CATEGORY_OPTIONS.map((cat) => {
+                  const items = menuItems.filter((m) => m.category === cat.value)
+                  if (items.length === 0) return null
+                  return (
+                    <div key={cat.value}>
+                      <div className="menu-group-title">{cat.icon} {cat.label}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
+                        {items.map((item) => (
+                          <div key={item.id} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--color-border-gold)' }}>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewItem(item)}
+                              style={{ display: 'block', width: '100%', padding: 0, textAlign: 'left' }}
+                              title="Lihat foto"
+                            >
+                              {item.imagePreview && (
+                                <img src={item.imagePreview} alt={item.name} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover' }} />
+                              )}
+                              <div style={{ padding: '8px', background: 'var(--color-bg-card)', fontSize: '0.82rem', fontWeight: 600 }}>
+                                {item.name}
+                                {item.price != null && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--color-gold)', fontWeight: 500, marginTop: '2px' }}>
+                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.price)}
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeMenuItem(item.id)}
+                              title="Hapus menu"
+                              style={{
+                                position: 'absolute', top: '6px', right: '6px',
+                                width: '24px', height: '24px',
+                                borderRadius: '50%', background: 'rgba(0,0,0,0.7)',
+                                border: 'none', color: 'white', cursor: 'pointer', fontSize: '12px',
+                              }}
+                            >✕</button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeMenuItem(item.id)}
-                      style={{
-                        position: 'absolute', top: '6px', right: '6px',
-                        width: '24px', height: '24px',
-                        borderRadius: '50%', background: 'rgba(0,0,0,0.7)',
-                        border: 'none', color: 'white', cursor: 'pointer', fontSize: '12px',
-                      }}
-                    >✕</button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 
@@ -276,7 +303,7 @@ export default function NewEventPage() {
               <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-light)', marginBottom: '12px' }}>
                 + Tambah Menu Baru
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <input
                   className="form-input"
                   type="text"
@@ -299,13 +326,27 @@ export default function NewEventPage() {
                   id="new-menu-price"
                 />
 
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {CATEGORY_OPTIONS.map((cat) => (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => setNewMenu((p) => ({ ...p, category: cat.value }))}
+                      className={`btn btn-sm ${newMenu.category === cat.value ? 'btn-primary' : 'btn-ghost'}`}
+                      id={`new-menu-category-${cat.value}`}
+                    >
+                      {cat.icon} {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {newMenu.imagePreview ? (
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <img
                         src={newMenu.imagePreview}
                         alt="preview"
-                        style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--color-border-gold)' }}
+                        style={{ width: '96px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--color-border-gold)' }}
                       />
                       <button
                         type="button"
@@ -314,15 +355,10 @@ export default function NewEventPage() {
                       >✕</button>
                     </div>
                   ) : (
-                    <label style={{ cursor: 'pointer', flexShrink: 0 }}>
+                    <label className="upload-zone" style={{ padding: 0, width: '96px', height: '72px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                       <input type="file" accept="image/*" onChange={handleMenuImage} style={{ display: 'none' }} id="menu-photo-upload" />
-                      <div style={{
-                        width: '80px', height: '60px', borderRadius: '8px',
-                        border: '2px dashed var(--color-border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1.5rem', cursor: 'pointer',
-                        background: 'rgba(255,255,255,0.02)',
-                      }}>📷</div>
+                      <span style={{ fontSize: '1.3rem' }}>📷</span>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Upload Foto</span>
                     </label>
                   )}
                   <button type="button" className="btn btn-dark btn-sm" onClick={addMenuItem} id="add-menu-btn">
@@ -345,6 +381,39 @@ export default function NewEventPage() {
           </button>
         </form>
       </main>
+
+      <Modal open={!!previewItem} onClose={() => setPreviewItem(null)} maxWidth="520px">
+        {previewItem && (
+          <div>
+            <img
+              src={previewItem.imagePreview}
+              alt={previewItem.name}
+              style={{ width: '100%', borderRadius: 'var(--radius-md)', marginBottom: '16px', maxHeight: '60vh', objectFit: 'contain', background: 'var(--color-green-dark)' }}
+            />
+            <p style={{ fontWeight: 700, marginBottom: '4px' }}>{previewItem.name}</p>
+            <p className="text-muted text-sm" style={{ marginBottom: '20px' }}>
+              {CATEGORY_OPTIONS.find((c) => c.value === previewItem.category)?.icon}{' '}
+              {CATEGORY_OPTIONS.find((c) => c.value === previewItem.category)?.label}
+              {previewItem.price != null && (
+                <> · {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(previewItem.price)}</>
+              )}
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <a
+                className="btn btn-primary btn-full"
+                href={previewItem.imagePreview}
+                download={`${previewItem.name}.jpg`}
+                id="download-menu-photo-btn"
+              >
+                ⬇️ Download
+              </a>
+              <button type="button" className="btn btn-ghost btn-full" onClick={() => setPreviewItem(null)}>
+                Tutup
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

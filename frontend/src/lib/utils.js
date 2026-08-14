@@ -76,3 +76,16 @@ export const JURUSAN_OPTIONS = [
   'Kriya',
   'Lainnya',
 ]
+
+/**
+ * Fakultas di Telkom University
+ */
+export const FAKULTAS_OPTIONS = [
+  'Fakultas Teknik Elektro',
+  'Fakultas Informatika',
+  'Fakultas Rekayasa Industri',
+  'Fakultas Ekonomi dan Bisnis',
+  'Fakultas Komunikasi dan Bisnis',
+  'Fakultas Industri Kreatif',
+  'Lainnya',
+]

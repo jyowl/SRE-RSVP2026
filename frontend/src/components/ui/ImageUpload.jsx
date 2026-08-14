@@ -51,6 +51,11 @@ export default function ImageUpload({
 
   return (
     <div>
+      {label && (
+        <p style={{ fontWeight: 600, color: 'var(--color-text-light)', fontSize: '0.85rem', marginBottom: '8px' }}>
+          {label}
+        </p>
+      )}
       {!preview ? (
         <div
           className={`upload-zone ${isDragOver ? 'dragover' : ''} ${error ? 'error' : ''}`}
@@ -92,6 +97,9 @@ export default function ImageUpload({
             position: 'absolute',
             bottom: 8,
             left: 8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
             background: 'rgba(0,0,0,0.65)',
             padding: '4px 10px',
             borderRadius: '6px',
@@ -99,12 +107,22 @@ export default function ImageUpload({
             color: 'white',
           }}>
             {file?.name}
+            <a
+              href={preview}
+              download={file?.name || 'foto.jpg'}
+              onClick={(e) => e.stopPropagation()}
+              title="Download foto"
+              aria-label="Download foto"
+              style={{ color: 'var(--color-gold)', lineHeight: 0 }}
+            >
+              ⬇️
+            </a>
           </div>
         </div>
       )}
       {error && (
         <p className="form-error" style={{ marginTop: '8px' }}>
-          <span>⚠️</span> {typeof error === 'string' ? error : 'Harap upload screenshot SG Invitation'}
+          <span>⚠️</span> {typeof error === 'string' ? error : `Harap upload ${label ? label.toLowerCase() : 'gambar'}`}
         </p>
       )}
     </div>

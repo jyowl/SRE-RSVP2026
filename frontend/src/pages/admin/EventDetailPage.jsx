@@ -76,9 +76,9 @@ export default function EventDetailPage() {
     const rows = filtered.map((r) => ({
       Nama: r.nama,
       NIM: r.nim,
+      Fakultas: r.fakultas || '-',
       Jurusan: r.jurusan,
       Jenis: JENIS_LABEL[r.jenis],
-      'Identitas Izin': r.identitas_izin || '-',
       Angkatan: r.angkatan || '-',
       Jabatan: r.jabatan || '-',
       Catering: getCateringNames(r.catering_choices),
@@ -346,6 +346,7 @@ export default function EventDetailPage() {
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>#</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Nama</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>NIM</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Fakultas</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Jurusan</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Jenis</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Detail</th>
@@ -367,6 +368,7 @@ export default function EventDetailPage() {
                     <td className="text-muted text-sm" style={{ padding: '12px 16px' }}>{i + 1}</td>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: '#ffffff' }}>{r.nama}</td>
                     <td className="text-sm" style={{ padding: '12px 16px', opacity: 0.85 }}>{r.nim}</td>
+                    <td className="text-sm" style={{ padding: '12px 16px', maxWidth: '160px', opacity: 0.85 }}>{r.fakultas || '-'}</td>
                     <td className="text-sm" style={{ padding: '12px 16px', maxWidth: '160px', opacity: 0.85 }}>{r.jurusan}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <span className={`badge ${JENIS_BADGE[r.jenis]}`} style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>
@@ -374,12 +376,7 @@ export default function EventDetailPage() {
                       </span>
                     </td>
                     <td className="text-sm text-muted" style={{ padding: '12px 16px' }}>
-                      {r.jenis === 'izin'
-                        ? `Izin (${r.identitas_izin === 'member' ? 'Member' : r.identitas_izin === 'pengurus' ? 'Pengurus' : '-'})`
-                        : r.angkatan ? `Angkatan ${r.angkatan}`
-                        : r.jabatan ? r.jabatan
-                        : '-'
-                      }
+                      {[r.angkatan ? `Angkatan ${r.angkatan}` : null, r.jabatan || null].filter(Boolean).join(' · ') || '-'}
                       {r.jenis === 'izin' && r.alasan_tidak_hadir && (
                         <span title={r.alasan_tidak_hadir} style={{ display: 'block', fontSize: '0.75rem', opacity: 0.7, cursor: 'help', textDecoration: 'underline dotted', marginTop: '2px' }}>
                           {r.alasan_tidak_hadir.substring(0, 25)}{r.alasan_tidak_hadir.length > 25 ? '...' : ''}
@@ -459,29 +456,40 @@ export default function EventDetailPage() {
           onClick={() => setSelectedBukti(null)}
         >
           <button
-            style={{ 
-              position: 'absolute', top: '20px', right: '20px', 
-              background: 'rgba(255,255,255,0.15)', border: 'none', 
-              color: 'white', width: '40px', height: '40px', 
+            style={{
+              position: 'absolute', top: '20px', right: '20px',
+              background: 'rgba(255,255,255,0.15)', border: 'none',
+              color: 'white', width: '40px', height: '40px',
               borderRadius: '50%', fontSize: '18px', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.2s'
             }}
             onClick={() => setSelectedBukti(null)}
           >✕</button>
-          <img
-            src={selectedBukti}
-            alt="Preview"
-            style={{ 
-              maxWidth: '90vw', 
-              maxHeight: '85vh', 
-              borderRadius: '12px', 
-              objectFit: 'contain',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }} onClick={(e) => e.stopPropagation()}>
+            <img
+              src={selectedBukti}
+              alt="Preview"
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '78vh',
+                borderRadius: '12px',
+                objectFit: 'contain',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+            />
+            <a
+              className="btn btn-primary btn-sm"
+              href={selectedBukti}
+              download
+              target="_blank"
+              rel="noreferrer"
+              id="download-bukti-btn"
+            >
+              ⬇️ Download
+            </a>
+          </div>
         </div>
       )}
 
@@ -509,21 +517,31 @@ export default function EventDetailPage() {
             }}
             onClick={() => setSelectedBuktiBayar(null)}
           >✕</button>
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
             <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '16px', fontSize: '0.85rem' }}>💳 Bukti Pembayaran</p>
             <img
               src={selectedBuktiBayar}
               alt="Bukti Pembayaran"
-              style={{ 
-                maxWidth: '90vw', 
-                maxHeight: '80vh', 
-                borderRadius: '12px', 
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '72vh',
+                borderRadius: '12px',
                 objectFit: 'contain',
                 boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
                 border: '1px solid rgba(232,184,75,0.3)'
               }}
-              onClick={(e) => e.stopPropagation()}
             />
+            <a
+              className="btn btn-primary btn-sm"
+              href={selectedBuktiBayar}
+              download
+              target="_blank"
+              rel="noreferrer"
+              id="download-bukti-bayar-btn"
+              style={{ display: 'inline-flex', marginTop: '16px' }}
+            >
+              ⬇️ Download
+            </a>
           </div>
         </div>
       )}

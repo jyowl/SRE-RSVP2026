@@ -6,7 +6,6 @@ import { supabase } from './lib/supabase'
 // Public Pages
 import LandingPage from './pages/LandingPage'
 import RegisterPage from './pages/RegisterPage'
-import SuccessPage from './pages/SuccessPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 // Admin Pages
@@ -69,7 +68,6 @@ export default function App() {
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/register/:eventId" element={<RegisterPage />} />
-        <Route path="/success" element={<SuccessPage />} />
 
         {/* Admin */}
         <Route path="/admin/login" element={

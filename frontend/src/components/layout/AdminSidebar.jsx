@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import toast from 'react-hot-toast'
@@ -6,6 +7,7 @@ import sreLogoWhite from '../../assets/sre-logo-white.png'
 export default function AdminSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -19,35 +21,55 @@ export default function AdminSidebar() {
   ]
 
   return (
-    <aside className="admin-sidebar">
-      <div className="admin-sidebar-logo">
-        <img src={sreLogoWhite} alt="SRE" />
-        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>RSVP Admin</span>
-      </div>
-
-      <ul className="admin-sidebar-nav">
-        {links.map((link) => (
-          <li key={link.to}>
-            <Link
-              to={link.to}
-              className={location.pathname === link.to ? 'active' : ''}
-            >
-              <span>{link.icon}</span>
-              <span>{link.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-
-      <div style={{ padding: '16px', borderTop: '1px solid var(--color-border)' }}>
+    <>
+      <div className="admin-topbar">
         <button
-          className="btn btn-ghost btn-full btn-sm"
-          onClick={handleLogout}
-          id="admin-logout-btn"
+          className="btn btn-ghost btn-sm"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Buka menu"
+          id="admin-mobile-menu-btn"
         >
-          🚪 Logout
+          ☰ Menu
         </button>
+        <img src={sreLogoWhite} alt="SRE" style={{ height: '26px' }} />
       </div>
-    </aside>
+
+      <div
+        className={`admin-sidebar-backdrop ${mobileOpen ? 'open' : ''}`}
+        onClick={() => setMobileOpen(false)}
+      />
+
+      <aside className={`admin-sidebar ${mobileOpen ? 'open' : ''}`}>
+        <div className="admin-sidebar-logo">
+          <img src={sreLogoWhite} alt="SRE" />
+          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>RSVP Admin</span>
+        </div>
+
+        <ul className="admin-sidebar-nav">
+          {links.map((link) => (
+            <li key={link.to}>
+              <Link
+                to={link.to}
+                className={location.pathname === link.to ? 'active' : ''}
+                onClick={() => setMobileOpen(false)}
+              >
+                <span>{link.icon}</span>
+                <span>{link.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <div style={{ padding: '16px', borderTop: '1px solid var(--color-border)' }}>
+          <button
+            className="btn btn-ghost btn-full btn-sm"
+            onClick={handleLogout}
+            id="admin-logout-btn"
+          >
+            🚪 Logout
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }

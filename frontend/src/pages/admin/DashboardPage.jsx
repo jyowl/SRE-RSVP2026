@@ -4,11 +4,13 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import AdminSidebar from '../../components/layout/AdminSidebar'
+import Modal from '../../components/ui/Modal'
 
 export default function DashboardPage() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [counts, setCounts] = useState({}) // { eventId: count }
+  const [deleteTarget, setDeleteTarget] = useState(null) // { id, nama_acara }
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -48,12 +50,13 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleDelete(eventId, eventName) {
-    if (!confirm(`Hapus event "${eventName}"? Semua data registrasi akan ikut terhapus.`)) return
+  async function handleDelete() {
+    if (!deleteTarget) return
     try {
-      const { error } = await supabase.from('events').delete().eq('id', eventId)
+      const { error } = await supabase.from('events').delete().eq('id', deleteTarget.id)
       if (error) throw error
       toast.success('Event berhasil dihapus')
+      setDeleteTarget(null)
       fetchEvents()
     } catch (err) {
       toast.error('Gagal menghapus event')
@@ -109,12 +112,33 @@ export default function DashboardPage() {
                 event={ev}
                 count={counts[ev.id] || 0}
                 onView={() => navigate(`/admin/events/${ev.id}`)}
-                onDelete={() => handleDelete(ev.id, ev.nama_acara)}
+                onDelete={() => setDeleteTarget({ id: ev.id, nama_acara: ev.nama_acara })}
               />
             ))}
           </div>
         )}
       </main>
+
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="400px">
+        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', marginBottom: '10px' }}>
+          Hapus Event?
+        </h2>
+        <p className="text-light text-sm" style={{ marginBottom: '24px', lineHeight: 1.6 }}>
+          Event <strong style={{ color: 'var(--color-gold)' }}>"{deleteTarget?.nama_acara}"</strong> beserta semua data registrasinya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
+        </p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-ghost btn-full" onClick={() => setDeleteTarget(null)}>
+            Batal
+          </button>
+          <button
+            className="btn btn-full"
+            onClick={handleDelete}
+            style={{ background: 'var(--color-error)', color: 'white' }}
+          >
+            Hapus
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -3,11 +3,20 @@ import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import { uploadBuktiPerizinan, uploadBuktiBayar } from '../lib/storage'
-import { JURUSAN_OPTIONS } from '../lib/utils'
+import { JURUSAN_OPTIONS, FAKULTAS_OPTIONS } from '../lib/utils'
 import CateringPicker from '../components/forms/CateringPicker'
 import ImageUpload from '../components/ui/ImageUpload'
+import Modal from '../components/ui/Modal'
 import sreLogoWhite from '../assets/sre-logo-white.png'
 import bgGlow from '../assets/bg-glow.png'
+
+const ROLE_META = {
+  member: { icon: '🎓', title: 'Member', desc: 'Anggota SRE aktif' },
+  pengurus: { icon: '⚙️', title: 'Pengurus', desc: 'Pengurus SRE' },
+  izin: { icon: '📋', title: 'Izin', desc: 'Tidak dapat hadir' },
+}
+
+const JENIS_LABEL = { member: 'Member', pengurus: 'Pengurus', izin: 'Izin Tidak Hadir' }
 
 const ANGKATAN_OPTIONS = ['2020', '2021', '2022', '2023', '2024', '2025']
 
@@ -19,17 +28,18 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
+  const [successData, setSuccessData] = useState(null)
 
   const [form, setForm] = useState({
     jenis: '',
-    identitas_izin: '',       // NEW: hanya untuk jenis=izin
     nama: '',
     nim: '',
+    fakultas: '',
     jurusan: '',
     angkatan: '',
     jabatan: '',
     alasan_tidak_hadir: '',
-    catering_choices: [],     // CHANGED: array of selected IDs (was string catering_choice)
+    catering_choices: [],     // array of selected menu IDs
   })
   const [buktiPerizinanFile, setBuktiPerizinanFile] = useState(null)  // untuk jenis=izin
   const [buktiBayarFile, setBuktiBayarFile] = useState(null)          // untuk jenis=member/pengurus
@@ -88,12 +98,12 @@ export default function RegisterPage() {
   function resetForm(newJenis) {
     setForm({
       jenis: newJenis,
-      identitas_izin: '',
       nama: form.nama,
       nim: form.nim,
+      fakultas: form.fakultas,
       jurusan: form.jurusan,
       angkatan: '',
-      jabatan: '',
+      jabatan: newJenis === 'member' ? 'Member' : '',
       alasan_tidak_hadir: '',
       catering_choices: [],
     })
@@ -108,22 +118,13 @@ export default function RegisterPage() {
     if (!form.jenis) errs.jenis = 'Pilih jenis pendaftaran'
     if (!form.nama.trim()) errs.nama = 'Nama wajib diisi'
     if (!form.nim.trim()) errs.nim = 'NIM wajib diisi'
+    if (!form.fakultas) errs.fakultas = 'Pilih fakultas'
     if (!form.jurusan) errs.jurusan = 'Pilih jurusan'
+    if (!form.angkatan) errs.angkatan = 'Pilih angkatan'
+    if (form.jenis !== 'member' && !form.jabatan.trim()) errs.jabatan = 'Jabatan wajib diisi'
 
-    // Validasi jenis=member
-    if (form.jenis === 'member') {
-      if (!form.angkatan) errs.angkatan = 'Pilih angkatan'
-    }
-    // Validasi jenis=pengurus
-    if (form.jenis === 'pengurus') {
-      if (!form.jabatan.trim()) errs.jabatan = 'Jabatan wajib diisi'
-    }
-
-    // Validasi jenis=izin (check_izin_lengkap + check_field_identitas)
+    // Validasi jenis=izin (check_izin_lengkap)
     if (form.jenis === 'izin') {
-      if (!form.identitas_izin) errs.identitas_izin = 'Pilih identitas kamu (member/pengurus)'
-      if (form.identitas_izin === 'member' && !form.angkatan) errs.angkatan = 'Pilih angkatan'
-      if (form.identitas_izin === 'pengurus' && !form.jabatan.trim()) errs.jabatan = 'Jabatan wajib diisi'
       if (!form.alasan_tidak_hadir.trim()) errs.alasan = 'Alasan tidak hadir wajib diisi'
       if (!buktiPerizinanFile) errs.buktiPerizinan = 'Upload bukti perizinan wajib'
     }
@@ -183,16 +184,12 @@ export default function RegisterPage() {
       const payload = {
         event_id: eventId,
         jenis: form.jenis,
-        identitas_izin: form.jenis === 'izin' ? form.identitas_izin : null,
         nama: form.nama.trim(),
         nim: form.nim.trim(),
+        fakultas: form.fakultas,
         jurusan: form.jurusan,
-        // angkatan: diisi kalau member, atau izin+identitas_izin=member
-        angkatan: (form.jenis === 'member' || (form.jenis === 'izin' && form.identitas_izin === 'member'))
-          ? form.angkatan : null,
-        // jabatan: diisi kalau pengurus, atau izin+identitas_izin=pengurus
-        jabatan: (form.jenis === 'pengurus' || (form.jenis === 'izin' && form.identitas_izin === 'pengurus'))
-          ? form.jabatan.trim() : null,
+        angkatan: form.angkatan,
+        jabatan: form.jenis === 'member' ? 'Member' : form.jabatan.trim(),
         alasan_tidak_hadir: form.jenis === 'izin' ? form.alasan_tidak_hadir.trim() : null,
         bukti_perizinan_url: buktiPerizinanUrl,
         catering_choices: cateringChoicesPayload,
@@ -203,16 +200,13 @@ export default function RegisterPage() {
       const { error } = await supabase.from('registrations').insert(payload)
       if (error) throw error
 
-      sessionStorage.setItem('sre_success', JSON.stringify({
+      setSuccessData({
         nama: form.nama,
         jenis: form.jenis,
-        identitas_izin: form.identitas_izin || null,
         nama_acara: eventData?.nama_acara,
         catering_choices: cateringChoicesPayload,
-        total_harga: totalPrice,
-      }))
-
-      navigate('/success')
+        total_harga: (form.jenis !== 'izin' && totalPrice != null) ? totalPrice : null,
+      })
     } catch (err) {
       console.error(err)
       toast.error(err?.message || 'Terjadi kesalahan saat submit. Coba lagi.')
@@ -265,18 +259,30 @@ export default function RegisterPage() {
       />
 
       {/* Navbar */}
-      <nav className="navbar" style={{ position: 'relative', zIndex: 10 }}>
+      <nav className="navbar" style={{ position: 'relative', zIndex: 10, justifyContent: 'flex-start' }}>
         <div className="navbar-logo">
           <img src={sreLogoWhite} alt="SRE Logo" />
-          <div className="navbar-title">Society of<br />Renewable Energy</div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/')}>
-          ← Kembali
-        </button>
       </nav>
 
-      <div className="page-wrapper" style={{ position: 'relative', zIndex: 10 }}>
-        <div className="container-sm" style={{ padding: '40px 24px 80px' }}>
+      {/* Floating back button */}
+      <button
+        className="btn btn-ghost btn-sm"
+        onClick={() => navigate('/')}
+        style={{
+          position: 'fixed',
+          top: '82px',
+          left: '20px',
+          zIndex: 50,
+          background: 'rgba(13, 31, 26, 0.7)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        ← Kembali
+      </button>
+
+      <div className="page-wrapper" style={{ position: 'relative', zIndex: 10, paddingTop: '96px' }}>
+        <div className="container-sm" style={{ padding: '16px 24px 80px' }}>
 
           {/* Event Header */}
           {eventData && (
@@ -289,8 +295,8 @@ export default function RegisterPage() {
               </h1>
               {eventData.deskripsi && (
                 <p style={{
-                  color: 'rgba(255,255,255,0.65)',
-                  fontSize: '0.95rem',
+                  color: 'rgba(255,255,255,0.72)',
+                  fontSize: '1.05rem',
                   marginBottom: '8px',
                   maxWidth: '520px',
                   margin: '0 auto 8px',
@@ -314,35 +320,40 @@ export default function RegisterPage() {
 
             {/* ===================== JENIS PENDAFTARAN ===================== */}
             <div className="card-glass animate-in animate-in-delay-1" style={{ marginBottom: '24px' }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', marginBottom: '20px', color: 'var(--color-gold)' }}>
-                Jenis Pendaftaran
-              </h2>
-              <div className="role-grid" id="field-jenis">
-                {[
-                  { value: 'member', icon: '🎓', title: 'Member', desc: 'Anggota SRE aktif' },
-                  { value: 'pengurus', icon: '⚙️', title: 'Pengurus', desc: 'Pengurus SRE' },
-                  { value: 'izin', icon: '📋', title: 'Izin', desc: 'Tidak dapat hadir' },
-                ].map((role) => (
-                  <label
-                    key={role.value}
-                    className={`role-card ${form.jenis === role.value ? 'selected' : ''}`}
-                    htmlFor={`role-${role.value}`}
-                  >
-                    <input
-                      type="radio"
-                      id={`role-${role.value}`}
-                      name="jenis"
-                      value={role.value}
-                      checked={form.jenis === role.value}
-                      onChange={() => resetForm(role.value)}
-                    />
-                    <span className="role-icon">{role.icon}</span>
-                    <div className="role-title">{role.title}</div>
-                    <div className="role-desc">{role.desc}</div>
-                  </label>
-                ))}
-              </div>
-              {errors.jenis && <p className="form-error" style={{ marginTop: '12px' }}><span>⚠️</span> {errors.jenis}</p>}
+              {form.jenis ? (
+                <SelectedRoleSummary
+                  role={{ value: form.jenis, ...ROLE_META[form.jenis] }}
+                  onChangeRole={() => resetForm('')}
+                />
+              ) : (
+                <>
+                  <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', marginBottom: '20px', color: 'var(--color-gold)' }}>
+                    Jenis Pendaftaran
+                  </h2>
+                  <div className="role-grid" id="field-jenis">
+                    {Object.entries(ROLE_META).map(([value, role]) => (
+                      <label
+                        key={value}
+                        className={`role-card ${form.jenis === value ? 'selected' : ''}`}
+                        htmlFor={`role-${value}`}
+                      >
+                        <input
+                          type="radio"
+                          id={`role-${value}`}
+                          name="jenis"
+                          value={value}
+                          checked={form.jenis === value}
+                          onChange={() => resetForm(value)}
+                        />
+                        <span className="role-icon">{role.icon}</span>
+                        <div className="role-title">{role.title}</div>
+                        <div className="role-desc">{role.desc}</div>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.jenis && <p className="form-error" style={{ marginTop: '12px' }}><span>⚠️</span> {errors.jenis}</p>}
+                </>
+              )}
             </div>
 
             {/* ===================== DATA DIRI ===================== */}
@@ -362,7 +373,7 @@ export default function RegisterPage() {
                       type="text"
                       value={form.nama}
                       onChange={(e) => setField('nama', e.target.value)}
-                      placeholder="Masukkan nama lengkap"
+                      placeholder="Contoh: Budi Santoso"
                     />
                     {errors.nama && <p className="form-error"><span>⚠️</span> {errors.nama}</p>}
                   </div>
@@ -376,9 +387,26 @@ export default function RegisterPage() {
                       type="text"
                       value={form.nim}
                       onChange={(e) => setField('nim', e.target.value)}
-                      placeholder="Masukkan NIM"
+                      placeholder="Contoh: 1301213045"
                     />
                     {errors.nim && <p className="form-error"><span>⚠️</span> {errors.nim}</p>}
+                  </div>
+
+                  {/* Fakultas */}
+                  <div className="form-group" id="field-fakultas">
+                    <label className="form-label required" htmlFor="input-fakultas">Fakultas</label>
+                    <select
+                      id="input-fakultas"
+                      className={`form-select ${errors.fakultas ? 'error' : ''}`}
+                      value={form.fakultas}
+                      onChange={(e) => setField('fakultas', e.target.value)}
+                    >
+                      <option value="">Pilih Fakultas</option>
+                      {FAKULTAS_OPTIONS.map((f) => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                    {errors.fakultas && <p className="form-error"><span>⚠️</span> {errors.fakultas}</p>}
                   </div>
 
                   {/* Jurusan */}
@@ -398,93 +426,39 @@ export default function RegisterPage() {
                     {errors.jurusan && <p className="form-error"><span>⚠️</span> {errors.jurusan}</p>}
                   </div>
 
-                  {/* Identitas Izin — khusus jenis=izin */}
-                  {isIzin && (
-                    <div className="form-group animate-in" id="field-identitas_izin">
-                      <label className="form-label required">Kamu adalah seorang</label>
-                      <p className="form-hint" style={{ marginBottom: '12px' }}>
-                        Pilih status kamu di SRE untuk melengkapi data perizinan.
-                      </p>
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        {[
-                          { value: 'member', icon: '🎓', label: 'Member SRE' },
-                          { value: 'pengurus', icon: '⚙️', label: 'Pengurus SRE' },
-                        ].map((opt) => (
-                          <label
-                            key={opt.value}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              padding: '12px 18px',
-                              borderRadius: '10px',
-                              border: `2px solid ${form.identitas_izin === opt.value ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                              background: form.identitas_izin === opt.value ? 'rgba(232,184,75,0.08)' : 'rgba(255,255,255,0.02)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s',
-                              flex: '1',
-                              minWidth: '140px',
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name="identitas_izin"
-                              value={opt.value}
-                              checked={form.identitas_izin === opt.value}
-                              onChange={() => {
-                                setForm(prev => ({ ...prev, identitas_izin: opt.value, angkatan: '', jabatan: '' }))
-                                setErrors(prev => ({ ...prev, identitas_izin: undefined, angkatan: undefined, jabatan: undefined }))
-                              }}
-                              style={{ display: 'none' }}
-                            />
-                            <span style={{ fontSize: '1.3rem' }}>{opt.icon}</span>
-                            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{opt.label}</span>
-                            {form.identitas_izin === opt.value && (
-                              <span style={{ marginLeft: 'auto', color: 'var(--color-gold)', fontSize: '1rem' }}>✓</span>
-                            )}
-                          </label>
-                        ))}
-                      </div>
-                      {errors.identitas_izin && (
-                        <p className="form-error" style={{ marginTop: '8px' }}><span>⚠️</span> {errors.identitas_izin}</p>
-                      )}
-                    </div>
-                  )}
+                  {/* Angkatan — wajib untuk semua jenis */}
+                  <div className="form-group" id="field-angkatan">
+                    <label className="form-label required" htmlFor="input-angkatan">Angkatan</label>
+                    <select
+                      id="input-angkatan"
+                      className={`form-select ${errors.angkatan ? 'error' : ''}`}
+                      value={form.angkatan}
+                      onChange={(e) => setField('angkatan', e.target.value)}
+                    >
+                      <option value="">Pilih Angkatan</option>
+                      {ANGKATAN_OPTIONS.map((a) => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
+                    {errors.angkatan && <p className="form-error"><span>⚠️</span> {errors.angkatan}</p>}
+                  </div>
 
-                  {/* Angkatan — Member langsung, atau Izin+identitas_izin=member */}
-                  {(form.jenis === 'member' || (isIzin && form.identitas_izin === 'member')) && (
-                    <div className="form-group animate-in" id="field-angkatan">
-                      <label className="form-label required" htmlFor="input-angkatan">Angkatan</label>
-                      <select
-                        id="input-angkatan"
-                        className={`form-select ${errors.angkatan ? 'error' : ''}`}
-                        value={form.angkatan}
-                        onChange={(e) => setField('angkatan', e.target.value)}
-                      >
-                        <option value="">Pilih Angkatan</option>
-                        {ANGKATAN_OPTIONS.map((a) => (
-                          <option key={a} value={a}>{a}</option>
-                        ))}
-                      </select>
-                      {errors.angkatan && <p className="form-error"><span>⚠️</span> {errors.angkatan}</p>}
-                    </div>
-                  )}
-
-                  {/* Jabatan — Pengurus langsung, atau Izin+identitas_izin=pengurus */}
-                  {(form.jenis === 'pengurus' || (isIzin && form.identitas_izin === 'pengurus')) && (
-                    <div className="form-group animate-in" id="field-jabatan">
-                      <label className="form-label required" htmlFor="input-jabatan">Jabatan</label>
-                      <input
-                        id="input-jabatan"
-                        className={`form-input ${errors.jabatan ? 'error' : ''}`}
-                        type="text"
-                        value={form.jabatan}
-                        onChange={(e) => setField('jabatan', e.target.value)}
-                        placeholder="Contoh: Ketua Divisi, Sekretaris..."
-                      />
-                      {errors.jabatan && <p className="form-error"><span>⚠️</span> {errors.jabatan}</p>}
-                    </div>
-                  )}
+                  {/* Jabatan — otomatis "Member" & terkunci kalau jenis=member,
+                      diisi manual untuk pengurus & izin */}
+                  <div className="form-group" id="field-jabatan">
+                    <label className="form-label required" htmlFor="input-jabatan">Jabatan</label>
+                    <input
+                      id="input-jabatan"
+                      className={`form-input ${errors.jabatan ? 'error' : ''}`}
+                      type="text"
+                      value={form.jabatan}
+                      disabled={form.jenis === 'member'}
+                      onChange={(e) => setField('jabatan', e.target.value)}
+                      placeholder="Contoh: Ketua Divisi, Sekretaris..."
+                      style={form.jenis === 'member' ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
+                    />
+                    {errors.jabatan && <p className="form-error"><span>⚠️</span> {errors.jabatan}</p>}
+                  </div>
 
                   {/* Alasan Tidak Hadir — khusus jenis=izin */}
                   {isIzin && (
@@ -495,7 +469,7 @@ export default function RegisterPage() {
                         className={`form-textarea ${errors.alasan ? 'error' : ''}`}
                         value={form.alasan_tidak_hadir}
                         onChange={(e) => setField('alasan_tidak_hadir', e.target.value)}
-                        placeholder="Jelaskan alasan ketidakhadiran kamu..."
+                        placeholder="Contoh: Sedang UAS pada tanggal yang sama, tidak bisa hadir."
                         rows={4}
                       />
                       {errors.alasan && <p className="form-error"><span>⚠️</span> {errors.alasan}</p>}
@@ -518,6 +492,7 @@ export default function RegisterPage() {
                 <div id="field-buktiPerizinan">
                   <ImageUpload
                     id="bukti-perizinan-upload"
+                    label="Bukti Perizinan"
                     file={buktiPerizinanFile}
                     onChange={setBuktiPerizinanFile}
                     error={errors.buktiPerizinan}
@@ -630,6 +605,7 @@ export default function RegisterPage() {
                 <div id="field-buktiBayar">
                   <ImageUpload
                     id="bukti-bayar-upload"
+                    label="Bukti Pembayaran"
                     file={buktiBayarFile}
                     onChange={setBuktiBayarFile}
                     error={errors.buktiBayar}
@@ -663,6 +639,111 @@ export default function RegisterPage() {
           </form>
         </div>
       </div>
+
+      <Modal open={!!successData} onClose={() => navigate('/')} closeOnBackdrop={false}>
+        <SuccessModalContent data={successData} onClose={() => { sessionStorage.removeItem('sre_event'); navigate('/') }} />
+      </Modal>
+    </div>
+  )
+}
+
+function SuccessModalContent({ data, onClose }) {
+  if (!data) return null
+  const menuNames = (data.catering_choices || []).map((c) => c.name).filter(Boolean)
+
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: '72px',
+        height: '72px',
+        borderRadius: '50%',
+        background: 'rgba(81, 207, 102, 0.15)',
+        border: '2px solid rgba(81,207,102,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '2.2rem',
+        margin: '0 auto 20px',
+      }}>
+        ✅
+      </div>
+
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', marginBottom: '10px' }}>
+        Pendaftaran Berhasil!
+      </h2>
+      <p className="text-light text-sm" style={{ marginBottom: '24px', lineHeight: 1.7 }}>
+        {data.nama ? `Terima kasih, ${data.nama}! ` : ''}
+        Data pendaftaranmu untuk <strong style={{ color: 'var(--color-gold)' }}>{data.nama_acara}</strong> telah berhasil dikirim.
+      </p>
+
+      <div className="card" style={{ textAlign: 'left', marginBottom: '24px', padding: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <SummaryRow label="Nama" value={data.nama} />
+          <SummaryRow label="Status" value={
+            <span className={`badge ${data.jenis === 'izin' ? 'badge-red' : 'badge-green'}`}>
+              {JENIS_LABEL[data.jenis]}
+            </span>
+          } />
+          {menuNames.length > 0 && (
+            <SummaryRow label="Menu" value={menuNames.join(', ')} />
+          )}
+          {data.total_harga != null && (
+            <SummaryRow
+              label="Total"
+              value={data.total_harga === 0
+                ? 'Gratis'
+                : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(data.total_harga)}
+            />
+          )}
+        </div>
+      </div>
+
+      <button className="btn btn-primary btn-lg btn-full" onClick={onClose} id="success-modal-close-btn">
+        ← Kembali ke Halaman Utama
+      </button>
+    </div>
+  )
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+      <span className="text-muted text-sm" style={{ flexShrink: 0 }}>{label}</span>
+      <div className="divider" style={{ flex: 1, height: '1px', margin: '0 8px' }} />
+      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-text-light)', textAlign: 'right' }}>
+        {value || '-'}
+      </span>
+    </div>
+  )
+}
+
+function SelectedRoleSummary({ role, onChangeRole }) {
+  if (!role) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <span style={{
+          width: '44px',
+          height: '44px',
+          borderRadius: '12px',
+          background: 'rgba(232,184,75,0.1)',
+          border: '1px solid rgba(232,184,75,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.3rem',
+          flexShrink: 0,
+        }}>
+          {role.icon}
+        </span>
+        <div>
+          <div className="text-muted text-xs" style={{ marginBottom: '2px' }}>Jenis Pendaftaran</div>
+          <div style={{ fontWeight: 700, color: 'var(--color-text-white)' }}>{role.title}</div>
+        </div>
+      </div>
+      <button type="button" className="btn btn-ghost btn-sm" onClick={onChangeRole}>
+        Ubah
+      </button>
     </div>
   )
 }

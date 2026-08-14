@@ -4,7 +4,7 @@
    Dark forest green + Gold yellow accents
    ===================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=Mulish:wght@300;400;500;600;700;800&display=swap');
 
 /* ========================
    CSS Variables / Tokens
@@ -30,8 +30,8 @@
   --color-success:    #51cf66;
 
   /* Typography */
-  --font-serif:  'Playfair Display', Georgia, serif;
-  --font-sans:   'Inter', system-ui, sans-serif;
+  --font-serif:  'Fraunces', Georgia, serif;
+  --font-sans:   'Mulish', system-ui, sans-serif;
 
   /* Spacing */
   --space-xs:   4px;
@@ -1131,6 +1131,89 @@ input, select, textarea {
 }
 
 /* ========================
+   Modal
+   ======================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(6, 30, 22, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-panel {
+  width: 100%;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-gold);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-xl);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: var(--color-text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: background var(--transition);
+}
+
+.modal-close:hover {
+  background: rgba(255,255,255,0.16);
+  color: var(--color-text-white);
+}
+
+/* ========================
+   Menu Group (Food / Drink)
+   ======================== */
+.menu-group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  margin-bottom: var(--space-md);
+}
+
+.menu-group + .menu-group {
+  margin-top: var(--space-lg);
+}
+
+.catering-check {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ========================
+   Admin Mobile Topbar
+   ======================== */
+.admin-topbar {
+  display: none;
+}
+
+/* ========================
    Responsive
    ======================== */
 @media (max-width: 768px) {
@@ -1138,15 +1221,67 @@ input, select, textarea {
     padding: var(--space-md);
   }
 
-  .admin-sidebar {
+  .navbar-title {
     display: none;
+  }
+
+  .admin-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--color-green-dark);
+    border-bottom: 1px solid var(--color-border-gold);
+    position: sticky;
+    top: 0;
+    z-index: 90;
+  }
+
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition-slow);
+    z-index: 200;
+    width: 260px;
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  }
+
+  .admin-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 150;
+  }
+
+  .admin-sidebar-backdrop.open {
+    display: block;
   }
 
   .admin-main {
     margin-left: 0;
+    padding: var(--space-lg) var(--space-md);
   }
 
   .catering-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .role-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .catering-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .modal-panel {
+    padding: var(--space-lg);
   }
 }

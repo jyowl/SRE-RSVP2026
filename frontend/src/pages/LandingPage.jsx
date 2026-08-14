@@ -69,27 +69,15 @@ export default function LandingPage() {
       <FloatingIcon icon="💧" style={{ top: '60%', right: '5%' }} delay="0.8s" />
 
       {/* Navbar */}
-      <nav className="navbar" style={{ width: '100%', position: 'relative', zIndex: 10 }}>
+      <nav className="navbar" style={{ width: '100%', position: 'relative', zIndex: 10, justifyContent: 'flex-start' }}>
         <div className="navbar-logo">
           <img src={sreLogoWhite} alt="SRE Logo" />
-          <div className="navbar-title">
-            Society of<br />Renewable Energy
-          </div>
         </div>
-        <ul className="navbar-links">
-          <li><a href="https://comp.sretelu.com/" target="_blank" rel="noreferrer">Website SRE</a></li>
-          <li><a href="/admin/login">Admin</a></li>
-        </ul>
       </nav>
 
       {/* Content Outer Wrapper - Bikin Konten di Tengah Layar */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '40px 20px' }}>
         <div className="hero-content animate-in" style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-          {/* Tag */}
-          <div className="badge badge-gold" style={{ marginBottom: '24px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <span>●</span> SRE RSVP 2026
-          </div>
-
           {/* Title */}
           <h1 className="section-title" style={{ marginBottom: '16px', fontSize: 'clamp(2.2rem, 6vw, 4rem)', textAlign: 'center' }}>
             Daftarkan<br />
