@@ -32,6 +32,7 @@ create table events (
   kode_unik text not null unique,
   tanggal_acara date,
   jam_acara time,
+  tempat text,
   catering_options jsonb not null default '[]'::jsonb,
   qris_url text,   -- URL QRIS pembayaran, diupload admin lewat halaman Data Registrasi
   created_by uuid references admins(id),
@@ -130,12 +131,13 @@ returns table(
   deskripsi text,
   tanggal_acara date,
   jam_acara time,
+  tempat text,
   catering_options jsonb
 )
 language sql
 security definer
 as $$
-  select id, nama_acara, deskripsi, tanggal_acara, jam_acara, catering_options
+  select id, nama_acara, deskripsi, tanggal_acara, jam_acara, tempat, catering_options
   from events
   where kode_unik = input_code;
 $$;
@@ -165,3 +167,28 @@ alter table registrations add constraint check_izin_lengkap check (
   jenis != 'izin' or (alasan_tidak_hadir is not null and bukti_perizinan_url is not null)
 );
 alter table registrations drop column if exists identitas_izin;
+
+-- ============================================
+-- MIGRATION: Tambah field tempat (venue) acara
+-- ============================================
+
+alter table events add column if not exists tempat text;
+
+drop function if exists validate_event_code(text);
+create or replace function validate_event_code(input_code text)
+returns table(
+  event_id uuid,
+  nama_acara text,
+  deskripsi text,
+  tanggal_acara date,
+  jam_acara time,
+  tempat text,
+  catering_options jsonb
+)
+language sql
+security definer
+as $$
+  select id, nama_acara, deskripsi, tanggal_acara, jam_acara, tempat, catering_options
+  from events
+  where kode_unik = input_code;
+$$;

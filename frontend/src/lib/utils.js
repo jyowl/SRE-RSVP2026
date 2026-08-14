@@ -59,25 +59,6 @@ export function exportToCSV(data, filename = 'data-registrasi.csv') {
 }
 
 /**
- * Singkatan jurusan Telkom University
- */
-export const JURUSAN_OPTIONS = [
-  'Teknik Informatika',
-  'Sistem Informasi',
-  'Teknik Elektro',
-  'Teknik Telekomunikasi',
-  'Teknik Komputer',
-  'Teknik Industri',
-  'Manajemen Bisnis Telekomunikasi dan Informatika',
-  'Ilmu Komunikasi',
-  'Administrasi Bisnis',
-  'Akuntansi',
-  'Desain Komunikasi Visual',
-  'Kriya',
-  'Lainnya',
-]
-
-/**
  * Fakultas di Telkom University
  */
 export const FAKULTAS_OPTIONS = [

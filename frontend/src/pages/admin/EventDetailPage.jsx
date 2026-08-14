@@ -170,13 +170,18 @@ export default function EventDetailPage() {
                   🔑 {event?.kode_unik}
                 </span>
                 {event?.tanggal_acara && (
-                  <span className="text-muted text-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
                     📅 {formatDate(event.tanggal_acara)}
                   </span>
                 )}
                 {event?.jam_acara && (
-                  <span className="text-muted text-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
                     🕐 {event.jam_acara.substring(0, 5)} WIB
+                  </span>
+                )}
+                {event?.tempat && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
+                    📍 {event.tempat}
                   </span>
                 )}
               </div>

@@ -30,6 +30,7 @@ export default function NewEventPage() {
     kode_unik: '',
     tanggal_acara: '',
     jam_acara: '',
+    tempat: '',
   })
   const [errors, setErrors] = useState({})
 
@@ -126,6 +127,7 @@ export default function NewEventPage() {
         kode_unik: form.kode_unik.trim().toUpperCase(),
         tanggal_acara: form.tanggal_acara || null,
         jam_acara: form.jam_acara || null,
+        tempat: form.tempat.trim() || null,
         catering_options: uploadedMenus,
         created_by: user.id,   // ← wajib untuk RLS policy
       })
@@ -200,28 +202,42 @@ export default function NewEventPage() {
                 }
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="ev-tanggal">Tanggal Acara</label>
-                <input
-                  id="ev-tanggal"
-                  className="form-input"
-                  type="date"
-                  value={form.tanggal_acara}
-                  onChange={(e) => setField('tanggal_acara', e.target.value)}
-                  style={{ colorScheme: 'dark' }}
-                />
-              </div>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <div className="form-group" style={{ flex: '1', minWidth: '140px' }}>
+                  <label className="form-label" htmlFor="ev-tanggal">Tanggal Acara</label>
+                  <input
+                    id="ev-tanggal"
+                    className="form-input"
+                    type="date"
+                    value={form.tanggal_acara}
+                    onChange={(e) => setField('tanggal_acara', e.target.value)}
+                    style={{ colorScheme: 'dark' }}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="ev-jam">Jam Acara</label>
-                <input
-                  id="ev-jam"
-                  className="form-input"
-                  type="time"
-                  value={form.jam_acara}
-                  onChange={(e) => setField('jam_acara', e.target.value)}
-                  style={{ colorScheme: 'dark' }}
-                />
+                <div className="form-group" style={{ flex: '1', minWidth: '120px' }}>
+                  <label className="form-label" htmlFor="ev-jam">Jam Acara</label>
+                  <input
+                    id="ev-jam"
+                    className="form-input"
+                    type="time"
+                    value={form.jam_acara}
+                    onChange={(e) => setField('jam_acara', e.target.value)}
+                    style={{ colorScheme: 'dark' }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ flex: '1.5', minWidth: '160px' }}>
+                  <label className="form-label" htmlFor="ev-tempat">Tempat Acara</label>
+                  <input
+                    id="ev-tempat"
+                    className="form-input"
+                    type="text"
+                    value={form.tempat}
+                    onChange={(e) => setField('tempat', e.target.value)}
+                    placeholder="Contoh: Gedung Serbaguna Telkom University"
+                  />
+                </div>
               </div>
 
               <div className="form-group">

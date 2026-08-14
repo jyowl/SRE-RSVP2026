@@ -61,23 +61,21 @@ export default function LandingPage() {
     >
       <div className="hero-grid" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
-      {/* Floating decorative icons */}
-      <FloatingIcon icon="🌱" style={{ top: '18%', left: '6%' }} delay="0s" />
-      <FloatingIcon icon="⚡" style={{ top: '55%', left: '4%' }} delay="0.5s" />
-      <FloatingIcon icon="☀️" style={{ top: '75%', left: '10%' }} delay="1s" />
-      <FloatingIcon icon="🔋" style={{ top: '15%', right: '6%' }} delay="0.3s" />
-      <FloatingIcon icon="💧" style={{ top: '60%', right: '5%' }} delay="0.8s" />
-
-      {/* Navbar */}
-      <nav className="navbar" style={{ width: '100%', position: 'relative', zIndex: 10, justifyContent: 'flex-start' }}>
-        <div className="navbar-logo">
-          <img src={sreLogoWhite} alt="SRE Logo" />
-        </div>
-      </nav>
+      {/* Dark overlay untuk kontras di atas background terang */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(180deg, rgba(13,31,26,0.82) 0%, rgba(13,31,26,0.78) 50%, rgba(13,31,26,0.88) 100%)',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
 
       {/* Content Outer Wrapper - Bikin Konten di Tengah Layar */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '40px 20px' }}>
         <div className="hero-content animate-in" style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
+          {/* Logo */}
+          <img src={sreLogoWhite} alt="SRE Logo" style={{ height: '48px', margin: '0 auto 28px' }} />
+
           {/* Title */}
           <h1 className="section-title" style={{ marginBottom: '16px', fontSize: 'clamp(2.2rem, 6vw, 4rem)', textAlign: 'center' }}>
             Daftarkan<br />
@@ -146,37 +144,6 @@ export default function LandingPage() {
         pointerEvents: 'none',
         zIndex: 5
       }} />
-    </div>
-  )
-}
-
-function FloatingIcon({ icon, style, delay }) {
-  return (
-    <div style={{
-      position: 'absolute',
-      width: '52px',
-      height: '52px',
-      borderRadius: '14px',
-      background: 'rgba(27,58,46,0.7)',
-      backdropFilter: 'blur(8px)',
-      border: '1px solid rgba(232,184,75,0.15)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '22px',
-      animation: `float 6s ease-in-out infinite`,
-      animationDelay: delay,
-      zIndex: 2,
-      ...style,
-      ['--float-delay']: delay,
-    }}>
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-12px); }
-        }
-      `}</style>
-      {icon}
     </div>
   )
 }

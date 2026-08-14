@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import { uploadBuktiPerizinan, uploadBuktiBayar } from '../lib/storage'
-import { JURUSAN_OPTIONS, FAKULTAS_OPTIONS } from '../lib/utils'
+import { FAKULTAS_OPTIONS } from '../lib/utils'
 import CateringPicker from '../components/forms/CateringPicker'
 import ImageUpload from '../components/ui/ImageUpload'
 import Modal from '../components/ui/Modal'
@@ -65,7 +65,7 @@ export default function RegisterPage() {
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('id, nama_acara, deskripsi, tanggal_acara, jam_acara, catering_options, qris_url')
+        .select('id, nama_acara, deskripsi, tanggal_acara, jam_acara, tempat, catering_options, qris_url')
         .eq('id', eventId)
         .single()
       if (error || !data) {
@@ -80,6 +80,7 @@ export default function RegisterPage() {
         catering_options: data.catering_options,
         tanggal_acara: data.tanggal_acara,
         jam_acara: data.jam_acara || null,
+        tempat: data.tempat || null,
         qris_url: data.qris_url || null,
       })
     } catch {
@@ -119,7 +120,7 @@ export default function RegisterPage() {
     if (!form.nama.trim()) errs.nama = 'Nama wajib diisi'
     if (!form.nim.trim()) errs.nim = 'NIM wajib diisi'
     if (!form.fakultas) errs.fakultas = 'Pilih fakultas'
-    if (!form.jurusan) errs.jurusan = 'Pilih jurusan'
+    if (!form.jurusan.trim()) errs.jurusan = 'Jurusan wajib diisi'
     if (!form.angkatan) errs.angkatan = 'Pilih angkatan'
     if (form.jenis !== 'member' && !form.jabatan.trim()) errs.jabatan = 'Jabatan wajib diisi'
 
@@ -187,7 +188,7 @@ export default function RegisterPage() {
         nama: form.nama.trim(),
         nim: form.nim.trim(),
         fakultas: form.fakultas,
-        jurusan: form.jurusan,
+        jurusan: form.jurusan.trim(),
         angkatan: form.angkatan,
         jabatan: form.jenis === 'member' ? 'Member' : form.jabatan.trim(),
         alasan_tidak_hadir: form.jenis === 'izin' ? form.alasan_tidak_hadir.trim() : null,
@@ -258,31 +259,40 @@ export default function RegisterPage() {
         }}
       />
 
-      {/* Navbar */}
-      <nav className="navbar" style={{ position: 'relative', zIndex: 10, justifyContent: 'flex-start' }}>
-        <div className="navbar-logo">
-          <img src={sreLogoWhite} alt="SRE Logo" />
-        </div>
-      </nav>
+      {/* Dark overlay untuk kontras di atas background terang */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'linear-gradient(180deg, rgba(13,31,26,0.82) 0%, rgba(13,31,26,0.78) 50%, rgba(13,31,26,0.88) 100%)',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
 
       {/* Floating back button */}
       <button
-        className="btn btn-ghost btn-sm"
+        className="btn btn-ghost"
         onClick={() => navigate('/')}
         style={{
           position: 'fixed',
-          top: '82px',
-          left: '20px',
+          top: '24px',
+          left: '24px',
           zIndex: 50,
           background: 'rgba(13, 31, 26, 0.7)',
           backdropFilter: 'blur(12px)',
+          padding: '14px 26px',
+          fontSize: '1rem',
         }}
       >
         ← Kembali
       </button>
 
-      <div className="page-wrapper" style={{ position: 'relative', zIndex: 10, paddingTop: '96px' }}>
+      <div className="page-wrapper" style={{ position: 'relative', zIndex: 10, paddingTop: '40px' }}>
         <div className="container-sm" style={{ padding: '16px 24px 80px' }}>
+
+          {/* Logo */}
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <img src={sreLogoWhite} alt="SRE Logo" style={{ height: '44px', margin: '0 auto' }} />
+          </div>
 
           {/* Event Header */}
           {eventData && (
@@ -305,13 +315,28 @@ export default function RegisterPage() {
                   {eventData.deskripsi}
                 </p>
               )}
-              {(eventData.tanggal_acara || eventData.jam_acara) && (
-                <p className="text-muted text-sm" style={{ marginTop: '8px' }}>
-                  📅{' '}
-                  {eventData.tanggal_acara && new Date(eventData.tanggal_acara).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  {eventData.tanggal_acara && eventData.jam_acara && ' · '}
-                  {eventData.jam_acara && `🕐 ${formatJam(eventData.jam_acara)} WIB`}
-                </p>
+              {(eventData.tanggal_acara || eventData.jam_acara || eventData.tempat) && (
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px 14px',
+                  marginTop: '10px',
+                  fontSize: '0.9rem',
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.92)',
+                }}>
+                  {eventData.tanggal_acara && (
+                    <span>📅 {new Date(eventData.tanggal_acara).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  )}
+                  {eventData.jam_acara && (
+                    <span>🕐 {formatJam(eventData.jam_acara)} WIB</span>
+                  )}
+                  {eventData.tempat && (
+                    <span>📍 {eventData.tempat}</span>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -412,17 +437,14 @@ export default function RegisterPage() {
                   {/* Jurusan */}
                   <div className="form-group" id="field-jurusan">
                     <label className="form-label required" htmlFor="input-jurusan">Jurusan</label>
-                    <select
+                    <input
                       id="input-jurusan"
-                      className={`form-select ${errors.jurusan ? 'error' : ''}`}
+                      className={`form-input ${errors.jurusan ? 'error' : ''}`}
+                      type="text"
                       value={form.jurusan}
                       onChange={(e) => setField('jurusan', e.target.value)}
-                    >
-                      <option value="">Pilih Jurusan</option>
-                      {JURUSAN_OPTIONS.map((j) => (
-                        <option key={j} value={j}>{j}</option>
-                      ))}
-                    </select>
+                      placeholder="Contoh: Teknik Informatika"
+                    />
                     {errors.jurusan && <p className="form-error"><span>⚠️</span> {errors.jurusan}</p>}
                   </div>
 
